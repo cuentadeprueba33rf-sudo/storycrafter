@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Story, Page, Character, Genre, StoryStatus, EditorTheme, CloudImage } from '../types';
 import { Icons } from './Icon';
 import { ALL_GENRES, ALL_STATUSES, ID_PREFIX } from '../constants';
-import { countWords, generateId, formatSize } from '../utils/storage';
+import { countWords, generateId } from '../utils/storage';
 
 interface EditorProps {
   story: Story;
@@ -21,7 +21,7 @@ const ORACLE_CARDS = [
   "Abandona el instrumento normal.",
   "Haz una lista de todo lo que podrías hacer y haz lo último.",
   "La repetición es una forma de cambio.",
-  "Mira muy de cerca los detalles más vergonzosos y amplifícalos.",
+  "Mira muy de cerca los detalles más vergonozosos y amplifícalos.",
   "¿Qué no harías?",
   "Enfatiza las repeticiones.",
   "Pregúntale a tu cuerpo.",
@@ -49,8 +49,11 @@ export const Editor: React.FC<EditorProps> = ({
   const [activeTab, setActiveTab] = useState<InspectorTab>('metas');
   const [zenMode, setZenMode] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [showCloudPicker, setShowCloudPicker] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Character form state
+  const [newCharName, setNewCharName] = useState('');
+  const [newCharPortrait, setNewCharPortrait] = useState<string | null>(null);
   
   // Sprint State
   const [sprintTime, setSprintTime] = useState(0);
@@ -59,12 +62,13 @@ export const Editor: React.FC<EditorProps> = ({
   
   const editorRef = useRef<HTMLDivElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const charPortraitInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const typewriterAudioRef = useRef<HTMLAudioElement>(null);
   
   const activePage = story.pages.find(p => p.id === activePageId);
 
-  // Typewriter Sound Logic
+  // Keyboard Sound effect
   useEffect(() => {
     const handleKeyDown = () => {
       if (story.typewriterEnabled && typewriterAudioRef.current) {
@@ -77,7 +81,7 @@ export const Editor: React.FC<EditorProps> = ({
     return () => editor?.removeEventListener('keydown', handleKeyDown);
   }, [story.typewriterEnabled]);
 
-  // Sprint Timer Logic
+  // Sprint Timer
   useEffect(() => {
     let interval: any;
     if (isSprintActive && sprintTime > 0) {
@@ -127,7 +131,7 @@ export const Editor: React.FC<EditorProps> = ({
   const handleCreatePage = () => {
     const newPage: Page = {
       id: generateId(ID_PREFIX.PAGE),
-      title: `Capítulo ${story.pages.length + 1}`,
+      title: `Escena ${story.pages.length + 1}`,
       content: '<p><br></p>',
       order: story.pages.length
     };
@@ -136,6 +140,42 @@ export const Editor: React.FC<EditorProps> = ({
       pages: [...prev.pages, newPage]
     }));
     setActivePageId(newPage.id);
+    setIsDirty(true);
+  };
+
+  const handleAddCharacter = () => {
+    if (!newCharName.trim()) return;
+    const newChar: Character = {
+      id: generateId('char_'),
+      name: newCharName.trim(),
+      image: newCharPortrait || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop',
+      description: ''
+    };
+    setStory(prev => ({
+      ...prev,
+      characters: [...(prev.characters || []), newChar]
+    }));
+    setNewCharName('');
+    setNewCharPortrait(null);
+    setIsDirty(true);
+  };
+
+  const handlePortraitUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewCharPortrait(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCharacter = (id: string) => {
+    if (!window.confirm("¿Retirar a este actor del reparto?")) return;
+    setStory(prev => ({
+      ...prev,
+      characters: prev.characters.filter(c => c.id !== id)
+    }));
     setIsDirty(true);
   };
 
@@ -186,6 +226,7 @@ export const Editor: React.FC<EditorProps> = ({
   };
 
   const totalWords = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
+  const progressPercent = story.wordCountGoal > 0 ? Math.min(100, Math.floor((totalWords / story.wordCountGoal) * 100)) : 0;
 
   const getThemeClasses = () => {
     switch(theme) {
@@ -206,21 +247,15 @@ export const Editor: React.FC<EditorProps> = ({
   return (
     <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${getThemeClasses()}`}>
       
-      {/* Typewriter sound source */}
+      {/* SFX Sources */}
       <audio ref={typewriterAudioRef} src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto" />
+      <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
+      <input type="file" ref={charPortraitInputRef} className="hidden" accept="image/*" onChange={handlePortraitUpload} />
 
-      <input 
-        type="file" 
-        ref={audioInputRef} 
-        className="hidden" 
-        accept="audio/*" 
-        onChange={handleAudioUpload} 
-      />
-
-      {/* Backdrop para cerrar en móviles */}
+      {/* Side Overlay for Mobile Click-to-Close */}
       {showInspector && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[110] lg:hidden animate-in fade-in duration-300"
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110] lg:hidden animate-in fade-in duration-300"
           onClick={() => setShowInspector(false)}
         />
       )}
@@ -230,8 +265,8 @@ export const Editor: React.FC<EditorProps> = ({
           <div className="flex items-center gap-4">
             <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.Back size={18} /></button>
             <div className="flex flex-col">
-              <h1 className="text-xs font-serif font-bold truncate max-w-[150px] md:max-w-[300px]">{story.title}</h1>
-              <span className="text-[9px] font-mono uppercase tracking-widest opacity-40">{totalWords} palabras totales</span>
+              <h1 className="text-xs font-serif font-bold truncate max-w-[120px] md:max-w-[300px]">{story.title}</h1>
+              <span className="text-[9px] font-mono uppercase tracking-widest opacity-40">{totalWords} palabras</span>
             </div>
           </div>
 
@@ -246,10 +281,10 @@ export const Editor: React.FC<EditorProps> = ({
             <button 
               onClick={() => setShowInspector(!showInspector)} 
               className={`p-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 ${showInspector ? 'bg-amber-500 text-white shadow-lg scale-105' : 'hover:bg-black/5 text-ink-400'}`}
-              title={showInspector ? "Cerrar Herramientas" : "Abrir Herramientas"}
+              title={showInspector ? "Cerrar Panel" : "Abrir Herramientas"}
             >
               <Icons.Magic size={18} />
-              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Herramientas</span>
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{showInspector ? 'Cerrar' : 'Herramientas'}</span>
             </button>
           </div>
         </header>
@@ -264,7 +299,7 @@ export const Editor: React.FC<EditorProps> = ({
                   className={`w-full font-serif font-bold bg-transparent outline-none border-none focus:ring-0 p-0 transition-all ${zenMode ? 'text-4xl md:text-6xl text-center' : 'text-3xl md:text-5xl text-left'}`}
                   value={activePage?.title || ''}
                   onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) })); }}
-                  placeholder="Título..."
+                  placeholder="Título de la escena..."
                 />
               </div>
               
@@ -274,12 +309,12 @@ export const Editor: React.FC<EditorProps> = ({
                 className={`flex-1 w-full bg-transparent outline-none font-serif leading-[1.8] min-h-[50vh] pb-64 selection:bg-ink-200 dark:selection:bg-ink-700 ${zenMode ? 'text-xl md:text-2xl text-justify' : 'text-lg md:text-xl'}`}
                 onInput={handleInput}
                 spellCheck={false}
-                data-placeholder="Escribe aquí tu próxima obra maestra..."
+                data-placeholder="El silencio es el lienzo, tus palabras la tinta..."
               />
             </div>
           </div>
 
-          {/* GESTOR DE CAPÍTULOS INFERIOR */}
+          {/* GESTOR DE CAPÍTULOS INFERIOR (RESTAURADO) */}
           {!zenMode && (
             <div className="shrink-0 border-t border-black/5 p-4 flex items-center justify-center bg-inherit z-50">
               <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
@@ -301,7 +336,7 @@ export const Editor: React.FC<EditorProps> = ({
                 <button 
                   onClick={handleCreatePage}
                   className="shrink-0 w-10 h-10 flex items-center justify-center bg-amber-500 text-white rounded-xl hover:scale-110 active:scale-95 transition-all shadow-md"
-                  title="Nueva Escena"
+                  title="Añadir Escena"
                 >
                   <Icons.Plus size={16} />
                 </button>
@@ -317,10 +352,11 @@ export const Editor: React.FC<EditorProps> = ({
                 <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Módulo de Inspiración</h2>
                 <button 
                   onClick={() => setShowInspector(false)} 
-                  className="p-2 hover:bg-black/5 rounded-full transition-colors group"
+                  className="p-2.5 bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all group flex items-center gap-2"
                   title="Cerrar Panel"
                 >
                   <Icons.X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Cerrar</span>
                 </button>
               </div>
               <div className="grid grid-cols-5 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
@@ -337,34 +373,138 @@ export const Editor: React.FC<EditorProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              {activeTab === 'metas' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Estado de la Obra</label>
+                    <select 
+                      className="w-full p-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                      value={story.status}
+                      onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, status: e.target.value as StoryStatus })); }}
+                    >
+                      {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Meta de Palabras</label>
+                    <input 
+                      type="number" 
+                      className="w-full p-4 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-xs font-mono font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                      value={story.wordCountGoal}
+                      onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, wordCountGoal: parseInt(e.target.value) || 0 })); }}
+                    />
+                    <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl space-y-4">
+                       <div className="flex justify-between items-end">
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Avance</span>
+                         <span className="text-lg font-serif italic font-bold">{progressPercent}%</span>
+                       </div>
+                       <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                       </div>
+                       <p className="text-[9px] font-mono text-center opacity-40">{totalWords} / {story.wordCountGoal} escritas</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'biblia' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.File size={14} /> Sinopsis Central</label>
+                    <textarea 
+                      className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-serif italic leading-relaxed focus:ring-2 focus:ring-amber-500 outline-none min-h-[180px] resize-none"
+                      placeholder="Escribe el alma de tu historia..."
+                      value={story.synopsis}
+                      onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, synopsis: e.target.value })); }}
+                    ></textarea>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Bible size={14} /> Notas de Mundo (Lore)</label>
+                    <textarea 
+                      className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-amber-500 outline-none min-h-[300px] resize-none"
+                      placeholder="Detalla reglas, geografía, mitos..."
+                      value={story.bible}
+                      onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, bible: e.target.value })); }}
+                    ></textarea>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'casting' && (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Characters size={14} /> Nuevo Actor</label>
+                      <div className="p-4 bg-black/5 dark:bg-white/5 rounded-3xl space-y-4">
+                        <div className="flex items-center gap-4">
+                          <button 
+                            onClick={() => charPortraitInputRef.current?.click()}
+                            className="shrink-0 w-16 h-16 bg-black/10 dark:bg-white/10 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-black/5"
+                          >
+                            {newCharPortrait ? (
+                              <img src={newCharPortrait} className="w-full h-full object-cover" />
+                            ) : (
+                              <Icons.Image size={24} className="opacity-20" />
+                            )}
+                          </button>
+                          <input 
+                            className="flex-1 bg-transparent border-none focus:ring-0 text-[10px] font-black uppercase tracking-widest"
+                            placeholder="Nombre del personaje..."
+                            value={newCharName}
+                            onChange={(e) => setNewCharName(e.target.value)}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleAddCharacter}
+                          disabled={!newCharName.trim()}
+                          className="w-full py-3 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg disabled:opacity-20 transition-all"
+                        >
+                          Añadir al Reparto
+                        </button>
+                      </div>
+                   </div>
+                   
+                   <div className="space-y-3 pt-6 border-t border-black/5">
+                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Elenco Actual</label>
+                     {story.characters?.map(char => (
+                        <div key={char.id} className="group relative flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 rounded-2xl hover:bg-black/10 transition-colors">
+                          <img src={char.image} className="w-14 h-14 rounded-2xl object-cover shadow-sm ring-1 ring-black/5" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] font-black uppercase tracking-widest truncate">{char.name}</span>
+                            <span className="text-[8px] font-serif italic opacity-40">Protagonista</span>
+                          </div>
+                          <button 
+                            onClick={() => handleRemoveCharacter(char.id)}
+                            className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                          >
+                            <Icons.Delete size={14} />
+                          </button>
+                        </div>
+                     ))}
+                   </div>
+                   
+                   {(!story.characters || story.characters.length === 0) && (
+                     <div className="py-12 border-2 border-dashed border-black/5 rounded-[2rem] text-center text-[10px] font-serif italic opacity-40">Tu historia aún no tiene rostros...</div>
+                   )}
+                </div>
+              )}
+
               {activeTab === 'sprint' && (
                 <div className="space-y-10 animate-in fade-in duration-500">
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Timer size={14} /> Sprint de Escritura</label>
                     <div className="grid grid-cols-3 gap-2">
                        {[15, 25, 45].map(m => (
-                         <button 
-                           key={m} 
-                           onClick={() => startSprint(m)}
-                           disabled={isSprintActive}
-                           className="py-3 px-2 bg-black/5 dark:bg-white/5 rounded-xl text-[10px] font-bold hover:bg-red-500 hover:text-white transition-all disabled:opacity-20"
-                         >
-                           {m} Min
-                         </button>
+                         <button key={m} onClick={() => startSprint(m)} disabled={isSprintActive} className="py-3 px-2 bg-black/5 dark:bg-white/5 rounded-xl text-[10px] font-bold hover:bg-amber-500 hover:text-white transition-all disabled:opacity-20">{m} Min</button>
                        ))}
                     </div>
                     {isSprintActive && (
-                      <button 
-                        onClick={() => setIsSprintActive(false)}
-                        className="w-full py-3 bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                      >
-                        Detener Foco
-                      </button>
+                      <button onClick={() => setIsSprintActive(false)} className="w-full py-3 bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest">Detener Foco</button>
                     )}
                   </div>
 
                   <div className="space-y-4 pt-8 border-t border-black/5">
-                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Keyboard size={14} /> Experiencia Táctil</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Keyboard size={14} /> Experiencia Mecánica</label>
                     <button 
                       onClick={toggleTypewriter}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${story.typewriterEnabled ? 'border-amber-500 bg-amber-500/5 text-amber-600' : 'border-black/5 bg-black/5 opacity-40'}`}
@@ -377,17 +517,8 @@ export const Editor: React.FC<EditorProps> = ({
                   <div className="space-y-4 pt-8 border-t border-black/5">
                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Magic size={14} /> Oráculo Creativo</label>
                     <div className="p-6 bg-ink-900 dark:bg-white rounded-[2rem] text-center space-y-4 shadow-xl">
-                      {oracleMessage ? (
-                        <p className="text-[11px] font-serif italic text-white dark:text-black leading-relaxed animate-in zoom-in-95">"{oracleMessage}"</p>
-                      ) : (
-                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 dark:text-black/40">¿Atascado?</p>
-                      )}
-                      <button 
-                        onClick={getOracleAdvice}
-                        className="px-6 py-2 bg-white dark:bg-black text-black dark:text-white rounded-full text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform"
-                      >
-                        Robar Carta
-                      </button>
+                      {oracleMessage ? <p className="text-[11px] font-serif italic text-white dark:text-black leading-relaxed animate-in zoom-in-95">"{oracleMessage}"</p> : <p className="text-[9px] font-black uppercase tracking-widest text-white/40 dark:text-black/40">¿Sin ideas?</p>}
+                      <button onClick={getOracleAdvice} className="px-6 py-2 bg-white dark:bg-black text-black dark:text-white rounded-full text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform">Robar Carta</button>
                     </div>
                   </div>
                 </div>
@@ -398,32 +529,23 @@ export const Editor: React.FC<EditorProps> = ({
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Disc size={14} /> Atmósfera Local</label>
                     {!story.soundtrackData ? (
-                      <button onClick={() => audioInputRef.current?.click()} className="w-full flex items-center justify-center gap-3 px-6 py-8 border-2 border-dashed border-black/10 rounded-[2rem] opacity-40 hover:opacity-60 transition-opacity"><Icons.Upload size={20} /></button>
+                      <button onClick={() => audioInputRef.current?.click()} className="w-full flex items-center justify-center gap-3 px-6 py-12 border-2 border-dashed border-black/10 rounded-[2.5rem] opacity-40 hover:opacity-60 transition-opacity flex-col">
+                        <Icons.Upload size={24} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Subir MP3</span>
+                      </button>
                     ) : (
-                      <div className="p-6 bg-ink-900 dark:bg-white rounded-[2rem] shadow-xl text-center space-y-4">
-                        <Icons.Music size={24} className="mx-auto text-white dark:text-black" />
-                        <button onClick={togglePlay} className="w-12 h-12 bg-white dark:bg-black text-black dark:text-white rounded-full mx-auto flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
-                           {isPlaying ? <Icons.Pause size={20} fill="currentColor" /> : <Icons.Play size={20} fill="currentColor" className="ml-1" />}
+                      <div className="p-8 bg-ink-900 dark:bg-white rounded-[2.5rem] shadow-2xl text-center space-y-6">
+                        <Icons.Music size={32} className="mx-auto text-white dark:text-black" />
+                        <div className="space-y-2">
+                           <p className="text-[9px] text-white/60 dark:text-black/60 font-mono truncate px-4">{story.soundtrackName}</p>
+                        </div>
+                        <button onClick={togglePlay} className="w-16 h-16 bg-white dark:bg-black text-black dark:text-white rounded-full mx-auto flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
+                           {isPlaying ? <Icons.Pause size={24} fill="currentColor" /> : <Icons.Play size={24} fill="currentColor" className="ml-1" />}
                         </button>
+                        <button onClick={() => setStory(prev => ({ ...prev, soundtrackData: undefined, soundtrackName: undefined }))} className="text-[8px] font-black uppercase tracking-widest text-red-500 opacity-60 hover:opacity-100">Eliminar Audio</button>
                       </div>
                     )}
-                    <audio ref={audioRef} src={story.soundtrackData} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                   </div>
-                </div>
-              )}
-
-              {activeTab === 'casting' && (
-                <div className="space-y-6 animate-in fade-in duration-500">
-                   <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Characters size={14} /> Reparto</label>
-                   {story.characters?.map(char => (
-                      <div key={char.id} className="flex items-center gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                        <img src={char.image} className="w-10 h-10 rounded-full object-cover" />
-                        <span className="text-[10px] font-black uppercase tracking-widest truncate">{char.name}</span>
-                      </div>
-                   ))}
-                   {(!story.characters || story.characters.length === 0) && (
-                     <div className="py-8 text-center text-[10px] font-serif italic opacity-40">Sin actores asignados</div>
-                   )}
                 </div>
               )}
             </div>
