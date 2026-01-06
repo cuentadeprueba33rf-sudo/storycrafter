@@ -295,7 +295,6 @@ export const Editor: React.FC<EditorProps> = ({
               </div>
             )}
 
-            {/* BOTÓN DE GUARDAR MANUAL (RESTAURADO) */}
             <button 
               onClick={handleManualSave}
               className={`p-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'hover:bg-black/5 text-ink-400 opacity-60'}`}
@@ -341,18 +340,19 @@ export const Editor: React.FC<EditorProps> = ({
             </div>
           </div>
 
+          {/* GESTOR DE CAPÍTULOS ELEVADO PARA EVITAR OCULTAMIENTO */}
           {!zenMode && (
-            <div className="shrink-0 border-t border-black/5 p-4 flex items-center justify-center bg-inherit z-50">
-              <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+            <div className="shrink-0 border-t border-black/5 px-4 pt-4 pb-12 md:pb-8 flex items-center justify-center bg-inherit/90 backdrop-blur-md z-50">
+              <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-2">
                 {story.pages.sort((a,b) => a.order - b.order).map((p, idx) => (
                   <button 
                     key={p.id}
                     onClick={() => setActivePageId(p.id)}
                     className={`
-                      shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                      shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
                       ${activePageId === p.id 
-                        ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' 
-                        : 'bg-black/5 hover:bg-black/10 text-ink-400'}
+                        ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-xl scale-105' 
+                        : 'bg-black/5 hover:bg-black/10 text-ink-400 border border-transparent'}
                     `}
                   >
                     <span className="opacity-40 mr-2">{idx + 1}.</span>
@@ -361,10 +361,10 @@ export const Editor: React.FC<EditorProps> = ({
                 ))}
                 <button 
                   onClick={handleCreatePage}
-                  className="shrink-0 w-10 h-10 flex items-center justify-center bg-amber-500 text-white rounded-xl hover:scale-110 active:scale-95 transition-all shadow-md"
+                  className="shrink-0 w-11 h-11 flex items-center justify-center bg-amber-500 text-white rounded-xl hover:scale-110 active:scale-95 transition-all shadow-lg"
                   title="Añadir Escena"
                 >
-                  <Icons.Plus size={16} />
+                  <Icons.Plus size={18} />
                 </button>
               </div>
             </div>
