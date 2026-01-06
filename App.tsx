@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { loadData, saveData, generateId, AppData } from './utils/storage';
-import { Story, Folder, ViewMode, Genre, StoryStatus } from './types';
-import { ID_PREFIX } from './constants';
-import { Library } from './components/Library';
-import { Editor } from './components/Editor';
-import { Dashboard } from './components/Dashboard';
-import { Icons } from './components/Icon';
+import { loadData, saveData, generateId, AppData } from './utils/storage.ts';
+import { Story, Folder, ViewMode, Genre, StoryStatus } from './types.ts';
+import { ID_PREFIX } from './constants.ts';
+import { Library } from './components/Library.tsx';
+import { Editor } from './components/Editor.tsx';
+import { Dashboard } from './components/Dashboard.tsx';
+import { Icons } from './components/Icon.tsx';
 
 function App() {
   const [data, setData] = useState<AppData>({ stories: [], folders: [] });

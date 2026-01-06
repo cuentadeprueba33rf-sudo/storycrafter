@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Icons } from './Icon';
+import { Icons } from './Icon.tsx';
 
 interface DashboardProps {
   onEnterStudio: () => void;

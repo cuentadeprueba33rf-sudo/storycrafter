@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { Story, Page, Genre, StoryStatus } from '../types';
-import { Icons } from './Icon';
-import { ALL_GENRES, ALL_STATUSES } from '../constants';
-import { countWords } from '../utils/storage';
+import { Story, Page, Genre, StoryStatus } from '../types.ts';
+import { Icons } from './Icon.tsx';
+import { ALL_GENRES, ALL_STATUSES } from '../constants.ts';
+import { countWords } from '../utils/storage.ts';
 
 interface EditorProps {
   story: Story;

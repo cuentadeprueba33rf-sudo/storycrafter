@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
-import { Folder, Story, LibraryViewMode, Genre, StoryStatus } from '../types';
-import { Icons } from './Icon';
-import { formatDate, countWords } from '../utils/storage';
+import { Folder, Story, LibraryViewMode, Genre, StoryStatus } from '../types.ts';
+import { Icons } from './Icon.tsx';
+import { formatDate, countWords } from '../utils/storage.ts';
 
 interface LibraryProps {
   stories: Story[];
