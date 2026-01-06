@@ -42,7 +42,12 @@ import {
   Sparkles,
   Cloud,
   Download,
-  UploadCloud
+  UploadCloud,
+  Music,
+  Disc,
+  Play,
+  Pause,
+  Volume2
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -101,5 +106,10 @@ export const Icons = {
   Magic: Sparkles,
   Cloud,
   Download,
-  Upload: UploadCloud
+  Upload: UploadCloud,
+  Music,
+  Disc,
+  Play,
+  Pause,
+  Volume: Volume2
 };

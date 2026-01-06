@@ -25,7 +25,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const maxSlots = 9; // Límite estricto de 9 fotos
   const currentCount = cloudImages.length;
   const storagePercentage = (currentCount / maxSlots) * 100;
-  const totalBytes = cloudImages.reduce((acc, img) => acc + img.size, 0);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -38,10 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const filesToUpload = Array.from(files).slice(0, availableSlots);
-    if (files.length > availableSlots) {
-      alert(`Solo hay espacio para ${availableSlots} fotos más. Se omitirán las excedentes.`);
-    }
-
     let newBatch: CloudImage[] = [];
     let processedCount = 0;
 
@@ -91,11 +86,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       extra: `${currentCount} / 9 Fotos`
     },
     {
-      id: 'characters',
-      title: 'Casting',
-      description: 'Personajes',
-      icon: <Icons.Characters size={14} />,
-      action: onEnterCharacters,
+      id: 'atmosphere',
+      title: 'Atmósfera',
+      description: 'Audio Local',
+      icon: <Icons.Music size={14} />,
+      action: () => alert("Sube tus archivos .MP3 directamente en el menú 'Inspiración' de cada historia."),
       primary: false
     },
     {
@@ -113,16 +108,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       action: () => setActiveModal('credits')
     },
     {
-      id: 'usage',
-      title: 'Comandos',
-      description: 'Productividad',
-      icon: <Icons.Terminal size={14} />,
-      action: () => setActiveModal('usage')
-    },
-    {
       id: 'updates',
-      title: 'v1.8.0',
-      description: 'Límite de 9 Fotos',
+      title: 'v2.0.0',
+      description: 'Audio Offline',
       icon: <Icons.Alert size={14} />,
       notify: true,
       action: () => setActiveModal('updates')
@@ -164,15 +152,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="mb-20 animate-in fade-in slide-in-from-left duration-1000 delay-100">
           <p className="text-lg md:text-xl font-serif leading-relaxed text-ink-800 dark:text-ink-300 max-w-2xl">
-            Escritura pura para autores que dominan su oficio. 
+            Atmósfera sonora 100% offline. 
             <span className="block mt-6 text-ink-400 font-sans text-[9px] uppercase tracking-[0.4em] font-black opacity-40">
-              Absencia de Algoritmo • Presencia de Autor
+              Audio Local • Sin Errores de API • 9 Retratos
             </span>
           </p>
         </div>
 
         <div className="mb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
             {sections.map((sec) => (
               <button 
                 key={sec.id}
@@ -196,10 +184,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {sec.extra || sec.description}
                   </p>
                 </div>
-
-                {sec.notify && (
-                  <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse"></span>
-                )}
               </button>
             ))}
           </div>
@@ -208,32 +192,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="mt-auto pt-16 border-t border-black/5 dark:border-white/5">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
             <div className="flex-1 space-y-6">
-              <h3 className="text-[8px] font-black uppercase tracking-[0.5em] text-ink-300">Arquitectura del Studio</h3>
+              <h3 className="text-[8px] font-black uppercase tracking-[0.5em] text-ink-300">Arquitectura Offline</h3>
               <div className="flex flex-wrap gap-x-12 gap-y-6">
                 <div className="group">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Icons.Check size={10} className="text-green-500" /> La Nube
+                    <Icons.Check size={10} className="text-green-500" /> Bóveda de Sonido
                   </h4>
                   <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
-                    Curaduría visual limitada a 9 retratos clave.
+                    Sube archivos .MP3 para una inspiración sin cortes ni errores de YouTube.
                   </p>
-                </div>
-                <div className="group">
-                  <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Icons.Check size={10} className="text-green-500" /> Character Lab
-                  </h4>
-                  <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
-                    Gestión de casting literario manual.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="shrink-0 flex flex-col items-end gap-6">
-              <div className="text-right">
-                <div className="text-[7px] font-mono text-ink-300 uppercase tracking-[0.4em] mb-1">Motor del Studio</div>
-                <div className="text-[9px] font-black text-ink-900 dark:text-white uppercase tracking-[0.2em] flex items-center justify-end gap-2">
-                  v1.8.0 <span className="text-green-500">●</span>
                 </div>
               </div>
             </div>
@@ -247,7 +214,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex flex-col md:flex-row justify-between items-center p-6 bg-black/5 dark:bg-white/5 rounded-3xl gap-6">
                <div className="space-y-2 flex-1 w-full">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
-                    <span>Espacio de Galería</span>
+                    <span>Casting Visual</span>
                     <span>{currentCount} / {maxSlots} Fotos</span>
                   </div>
                   <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
@@ -286,54 +253,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               ))}
               {Array.from({ length: Math.max(0, maxSlots - currentCount) }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square border-2 border-dashed border-black/5 dark:border-white/5 rounded-3xl flex items-center justify-center opacity-20 group transition-all hover:opacity-40">
-                  <span className="text-[10px] font-black opacity-10 italic">Slot {currentCount + i + 1}</span>
+                <div key={`empty-${i}`} className="aspect-square border-2 border-dashed border-black/5 dark:border-white/5 rounded-3xl flex items-center justify-center opacity-20">
+                  <span className="text-[10px] font-black opacity-10">Slot {currentCount + i + 1}</span>
                 </div>
               ))}
             </div>
-            
-            <p className="text-center text-[9px] font-serif italic text-ink-400 opacity-60">
-              "La brevedad es el alma de la elegancia visual."
-            </p>
           </div>
         </Modal>
       )}
 
-      {activeModal === 'credits' && (
-        <Modal title="Créditos del Studio" onClose={() => setActiveModal(null)}>
-          <div className="space-y-12 py-8 text-center">
-            <div className="space-y-6">
-              <p className="text-[10px] uppercase tracking-[0.5em] font-black opacity-30 mb-8">Concepto y Desarrollo</p>
-              <div className="space-y-4">
-                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">SAM VERCE</p>
-                <div className="h-[1px] w-4 bg-ink-200 mx-auto opacity-30"></div>
-                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">SAMUEL CASSERES</p>
-                <div className="h-[1px] w-4 bg-ink-200 mx-auto opacity-30"></div>
-                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">NADIA CAROLINA</p>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {activeModal === 'no-ai' && (
-        <Modal title="Human-First" onClose={() => setActiveModal(null)}>
-          <div className="py-10 text-center italic text-xl font-serif text-ink-900 dark:text-white leading-relaxed">
-            "La palabra es el único territorio donde la máquina no puede entrar sin permiso. StoryCraft es el refugio del autor."
-          </div>
-        </Modal>
-      )}
-      
       {activeModal === 'updates' && (
-        <Modal title="Novedades v1.8.0" onClose={() => setActiveModal(null)}>
+        <Modal title="Novedades v2.0.0" onClose={() => setActiveModal(null)}>
            <div className="space-y-6 py-4">
             <div className="flex gap-4">
-              <div className="h-2 w-2 bg-ink-900 dark:bg-white rounded-full mt-1.5 shrink-0"></div>
-              <p><strong className="uppercase tracking-widest text-[10px]">Cuota Visual</strong>: La Nube ahora se limita estrictamente a 9 fotos para promover una curaduría visual más profunda.</p>
+              <div className="h-2 w-2 bg-amber-500 rounded-full mt-1.5 shrink-0"></div>
+              <p><strong className="uppercase tracking-widest text-[10px]">Adiós Errores de YouTube</strong>: Ahora puedes subir tus propios archivos de audio directamente al Atelier. Sin anuncios, sin bloqueos, 100% privado.</p>
             </div>
             <div className="flex gap-4">
               <div className="h-2 w-2 bg-ink-900 dark:bg-white rounded-full mt-1.5 shrink-0"></div>
-              <p><strong className="uppercase tracking-widest text-[10px]">Optimización</strong>: Mejora en la carga de archivos para el Casting Lab.</p>
+              <p><strong className="uppercase tracking-widest text-[10px]">Optimización Offline</strong>: Tu ambiente sonoro está disponible incluso sin conexión a internet.</p>
             </div>
           </div>
         </Modal>

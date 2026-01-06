@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Story, Page, Character, Genre, StoryStatus, EditorTheme, CloudImage } from '../types';
 import { Icons } from './Icon';
 import { ALL_GENRES, ALL_STATUSES, ID_PREFIX } from '../constants';
-import { countWords, generateId } from '../utils/storage';
+import { countWords, generateId, formatSize } from '../utils/storage';
 
 interface EditorProps {
   story: Story;
@@ -15,7 +15,7 @@ interface EditorProps {
   cloudImages: CloudImage[];
 }
 
-type InspectorTab = 'metas' | 'biblia' | 'casting' | 'detalles';
+type InspectorTab = 'metas' | 'biblia' | 'casting' | 'musica';
 
 export const Editor: React.FC<EditorProps> = ({ 
   story: initialStory, 
@@ -29,15 +29,17 @@ export const Editor: React.FC<EditorProps> = ({
   const [story, setStory] = useState<Story>({ ...initialStory, characters: initialStory.characters || [] });
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
   const [showInspector, setShowInspector] = useState(false);
-  const [showChapterBar, setShowChapterBar] = useState(true);
   const [activeTab, setActiveTab] = useState<InspectorTab>('metas');
   const [zenMode, setZenMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showCloudPicker, setShowCloudPicker] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
   const activePage = story.pages.find(p => p.id === activePageId);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export const Editor: React.FC<EditorProps> = ({
     const timer = setTimeout(() => {
       onSave(story);
       setIsDirty(false);
-    }, 10000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [story, onSave, isDirty]);
 
@@ -66,6 +68,45 @@ export const Editor: React.FC<EditorProps> = ({
         updatedAt: Date.now(),
         pages: prev.pages.map(p => p.id === activePageId ? { ...p, content } : p)
       }));
+    }
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      alert("El archivo es demasiado grande (Máximo 15MB). El Atelier requiere archivos ligeros.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setIsDirty(true);
+      setStory(prev => ({
+        ...prev,
+        soundtrackData: reader.result as string,
+        soundtrackName: file.name
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Error al reproducir audio:", e));
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleRemoveAudio = () => {
+    if (window.confirm("¿Eliminar atmósfera sonora?")) {
+      setIsDirty(true);
+      setStory(prev => ({ ...prev, soundtrackData: undefined, soundtrackName: undefined }));
+      setIsPlaying(false);
     }
   };
 
@@ -93,10 +134,6 @@ export const Editor: React.FC<EditorProps> = ({
       }
     });
     handleInput();
-  };
-
-  const handleAddCharacter = () => {
-    fileInputRef.current?.click();
   };
 
   const handleImportFromCloud = (img: CloudImage) => {
@@ -146,20 +183,7 @@ export const Editor: React.FC<EditorProps> = ({
     setIsDirty(true);
   };
 
-  const handleAddPage = () => {
-    const newPage: Page = {
-      id: generateId(ID_PREFIX.PAGE),
-      title: `Nueva Escena`,
-      content: '<p><br></p>',
-      order: story.pages.length
-    };
-    setIsDirty(true);
-    setStory(prev => ({ ...prev, pages: [...prev.pages, newPage] }));
-    setActivePageId(newPage.id);
-  };
-
   const totalWords = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
-  const progressPercent = story.wordCountGoal > 0 ? Math.min(100, (totalWords / story.wordCountGoal) * 100) : 0;
 
   const getThemeClasses = () => {
     switch(theme) {
@@ -188,7 +212,7 @@ export const Editor: React.FC<EditorProps> = ({
                 <h2 className="text-xl font-serif font-bold">Importar de La Nube</h2>
                 <button onClick={() => setShowCloudPicker(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={18} /></button>
               </div>
-              <div className="grid grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                 {cloudImages.map(img => (
                   <button 
                     key={img.id} 
@@ -201,11 +225,6 @@ export const Editor: React.FC<EditorProps> = ({
                     </div>
                   </button>
                 ))}
-                {cloudImages.length === 0 && (
-                  <div className="col-span-full py-12 text-center opacity-30 text-xs font-mono uppercase tracking-widest">
-                    La nube está vacía
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -223,27 +242,30 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {story.soundtrackData && (
+               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 ${isPlaying ? 'animate-pulse bg-amber-500/10' : 'bg-black/5'}`}>
+                  <Icons.Music size={12} className="text-amber-600 dark:text-amber-400" />
+                  <span className="text-[8px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-tighter truncate max-w-[80px]">
+                    {isPlaying ? 'En Aire' : 'Silencio'}
+                  </span>
+               </div>
+            )}
+            
             <button 
               onClick={processCastingInText}
               className="p-2 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 rounded-lg transition-all flex items-center gap-2 group"
-              title="Sincronizar Reparto en Párrafos"
+              title="Sincronizar Reparto"
             >
-              <Icons.Magic size={18} className="group-hover:rotate-12 transition-transform" />
+              <Icons.Magic size={18} />
               <span className="hidden lg:inline text-[9px] font-black uppercase tracking-[0.2em]">Casting</span>
             </button>
 
-            <div className="hidden sm:flex bg-black/5 dark:bg-white/5 p-1 rounded-xl mr-2">
-              <button onClick={() => onChangeTheme('LIGHT')} className={`p-1.5 rounded-lg ${theme === 'LIGHT' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-400'}`}><Icons.Sun size={14} /></button>
-              <button onClick={() => onChangeTheme('SEPIA')} className={`p-1.5 rounded-lg ${theme === 'SEPIA' ? 'bg-[#5d4037] text-white shadow-sm' : 'text-ink-400'}`}><Icons.Sepia size={14} /></button>
-              <button onClick={() => onChangeTheme('DARK')} className={`p-1.5 rounded-lg ${theme === 'DARK' ? 'bg-black text-white shadow-sm' : 'text-ink-400'}`}><Icons.Moon size={14} /></button>
-            </div>
-            
             <button 
               onClick={() => setShowInspector(!showInspector)} 
               className={`p-2 rounded-lg flex items-center gap-2 transition-all ${showInspector ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg' : 'hover:bg-black/5 text-ink-400'}`}
             >
               <Icons.Target size={18} />
-              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Inspector</span>
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Inspiración</span>
             </button>
           </div>
         </header>
@@ -274,48 +296,116 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
         </main>
 
-        {!zenMode && (
-          <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'} ${getPanelBg()} border-l border-black/5`}>
-            <div className="flex flex-col h-full w-full overflow-hidden">
-              <div className="p-6 border-b border-black/5">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Inspector</h2>
-                  <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={18} /></button>
-                </div>
-                <div className="grid grid-cols-4 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
-                  {(['metas', 'biblia', 'casting', 'detalles'] as InspectorTab[]).map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60'}`}>{tab}</button>
-                  ))}
-                </div>
+        <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'} ${getPanelBg()} border-l border-black/5 shadow-2xl`}>
+          <div className="flex flex-col h-full w-full overflow-hidden">
+            <div className="p-6 border-b border-black/5">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Módulo de Inspiración</h2>
+                <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={18} /></button>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                {activeTab === 'casting' && (
-                  <div className="space-y-8">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-mono opacity-40 uppercase">Reparto</label>
-                      <div className="flex gap-2">
-                        <button onClick={() => setShowCloudPicker(true)} className="p-2 bg-amber-500 text-white rounded-full hover:scale-110 transition-transform" title="De la Nube"><Icons.Cloud size={14} /></button>
-                        <button onClick={handleAddCharacter} className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full hover:scale-110 transition-transform" title="Local"><Icons.Plus size={14} /></button>
-                      </div>
-                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      {story.characters?.map(char => (
-                        <div key={char.id} className="group relative flex items-center gap-4 p-3 bg-black/[0.02] rounded-2xl border border-black/5">
-                          <img src={char.image} className="w-12 h-12 rounded-full object-cover border border-black/10" />
-                          <div className="flex-1 min-w-0"><h4 className="text-[10px] font-mono font-bold uppercase truncate">{char.name}</h4></div>
-                          <button onClick={() => handleDeleteCharacter(char.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><Icons.Delete size={12} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Otros tabs existentes... */}
+              <div className="grid grid-cols-4 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
+                {(['metas', 'biblia', 'casting', 'musica'] as InspectorTab[]).map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60'}`}>
+                    {tab === 'musica' ? <Icons.Music size={12} className="mx-auto" /> : tab}
+                  </button>
+                ))}
               </div>
             </div>
-          </aside>
-        )}
+
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              {activeTab === 'musica' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+                      <Icons.Disc size={14} className={isPlaying ? 'animate-spin-slow' : ''} /> Atmósfera Local
+                    </label>
+                    {!story.soundtrackData ? (
+                      <div className="flex flex-col gap-4">
+                        <button 
+                          onClick={() => audioInputRef.current?.click()}
+                          className="w-full flex items-center justify-center gap-3 px-6 py-8 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[2rem] hover:bg-black/[0.02] transition-colors group"
+                        >
+                          <Icons.Upload size={20} className="text-ink-300 group-hover:scale-110 transition-transform" />
+                          <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Subir .MP3 / .WAV</span>
+                        </button>
+                        <p className="text-[8px] text-ink-400 font-serif italic text-center px-4">
+                          Máximo 15MB. El audio se almacenará de forma privada en tu navegador.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="p-6 bg-ink-900 dark:bg-white rounded-[2rem] shadow-xl relative overflow-hidden group">
+                           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-transparent opacity-50"></div>
+                           <div className="relative z-10 flex flex-col items-center text-center gap-4">
+                              <div className="p-4 bg-white/10 dark:bg-black/10 rounded-full">
+                                <Icons.Music size={24} className="text-white dark:text-black" />
+                              </div>
+                              <div className="w-full">
+                                <p className="text-[10px] font-black text-white dark:text-black uppercase tracking-widest line-clamp-1 mb-1">
+                                  {story.soundtrackName || 'Atmósfera Cargada'}
+                                </p>
+                                <p className="text-[8px] font-serif italic text-white/40 dark:text-black/40">
+                                  Audio Local Privado
+                                </p>
+                              </div>
+                              <div className="flex gap-4 items-center">
+                                <button 
+                                  onClick={togglePlay}
+                                  className="w-12 h-12 bg-white dark:bg-black text-black dark:text-white rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg"
+                                >
+                                  {isPlaying ? <Icons.Pause size={20} fill="currentColor" /> : <Icons.Play size={20} fill="currentColor" className="ml-1" />}
+                                </button>
+                                <button 
+                                  onClick={handleRemoveAudio}
+                                  className="p-2 text-white/40 hover:text-red-400 transition-colors"
+                                  title="Eliminar Audio"
+                                >
+                                  <Icons.Delete size={16} />
+                                </button>
+                              </div>
+                           </div>
+                        </div>
+                        <audio 
+                          ref={audioRef} 
+                          src={story.soundtrackData} 
+                          loop 
+                          onPlay={() => setIsPlaying(true)}
+                          onPause={() => setIsPlaying(false)}
+                        />
+                      </div>
+                    )}
+                    <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'casting' && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-mono opacity-40 uppercase tracking-widest">Actores del Relato</label>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowCloudPicker(true)} className="p-2 bg-amber-500 text-white rounded-full hover:scale-110 transition-transform shadow-lg" title="Importar de La Nube"><Icons.Cloud size={14} /></button>
+                      <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full hover:scale-110 transition-transform shadow-lg" title="Subir Local"><Icons.Plus size={14} /></button>
+                    </div>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    {story.characters?.map(char => (
+                      <div key={char.id} className="group relative flex items-center gap-4 p-4 bg-black/[0.02] rounded-3xl border border-black/5 hover:border-amber-500/30 transition-all">
+                        <img src={char.image} className="w-14 h-14 rounded-full object-cover border-2 border-white dark:border-ink-800 shadow-sm" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-[10px] font-black uppercase truncate tracking-widest">{char.name}</h4>
+                          <p className="text-[8px] text-ink-400 font-serif italic truncate">Presente en el manuscrito</p>
+                        </div>
+                        <button onClick={() => handleDeleteCharacter(char.id)} className="p-2 text-ink-200 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"><Icons.Delete size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

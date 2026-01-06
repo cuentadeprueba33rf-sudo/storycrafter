@@ -56,6 +56,9 @@ export interface Story {
   updatedAt: number;
   pages: Page[];
   characters: Character[];
+  soundtrackUrl?: string; // Mantenido por compatibilidad
+  soundtrackData?: string; // Nuevo: Base64 del audio local
+  soundtrackName?: string; // Nuevo: Nombre del archivo de audio
 }
 
 export interface Folder {
