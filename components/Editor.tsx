@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Story, Page, Character, Genre, StoryStatus, EditorTheme, CloudImage } from '../types';
 import { Icons } from './Icon';
@@ -17,7 +16,7 @@ interface EditorProps {
   readOnly?: boolean;
 }
 
-type InspectorTab = 'metas' | 'biblia' | 'casting' | 'musica' | 'sprint';
+type InspectorTab = 'gestion' | 'biblia';
 
 export const Editor: React.FC<EditorProps> = ({ 
   story: initialStory, 
@@ -37,7 +36,7 @@ export const Editor: React.FC<EditorProps> = ({
   });
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
   const [showInspector, setShowInspector] = useState(false);
-  const [activeTab, setActiveTab] = useState<InspectorTab>('metas');
+  const [activeTab, setActiveTab] = useState<InspectorTab>('gestion');
   const [zenMode, setZenMode] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,7 +53,7 @@ export const Editor: React.FC<EditorProps> = ({
       const preventDefault = (e: Event) => e.preventDefault();
       const handleCopy = (e: ClipboardEvent) => {
         e.preventDefault();
-        alert("Protección de Autor: Este manuscrito está bajo derechos reservados y no puede ser copiado.");
+        alert("Protección de Autor: Este manuscrito está protegido y no puede ser copiado.");
       };
       
       document.addEventListener('copy', handleCopy);
@@ -77,9 +76,10 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
+  // Auto-guardado silencioso para el contenido del editor
   useEffect(() => {
     if (!isDirty || readOnly) return;
-    const timer = setTimeout(() => handleManualSave(), 2000);
+    const timer = setTimeout(() => handleManualSave(), 5000);
     return () => clearTimeout(timer);
   }, [story, isDirty, readOnly]);
 
@@ -105,9 +105,6 @@ export const Editor: React.FC<EditorProps> = ({
   };
 
   const finalizePublication = (asAnonymous: boolean) => {
-    // Obtenemos el nombre real guardado en metadatos si no es anónimo
-    // Si asAnonymous es true, usamos "Anónimo"
-    // El nombre real viene del estado inicial o de la sesión (manejado en App.tsx)
     const finalAuthorName = asAnonymous ? "Anónimo" : (initialStory.authorName || "Escritor");
     const updatedStory = { ...story, isPublished: true, authorName: finalAuthorName };
     setStory(updatedStory);
@@ -118,11 +115,11 @@ export const Editor: React.FC<EditorProps> = ({
   };
 
   const handleUnpublish = () => {
-    if (confirm("¿Quieres retirar esta historia de la comunidad? Seguirá estando disponible solo para ti.")) {
+    if (confirm("¿Quieres retirar esta historia de la comunidad? Seguirá estando disponible solo para ti en tu Studio.")) {
       const updatedStory = { ...story, isPublished: false };
       setStory(updatedStory);
       onSave(updatedStory);
-      alert("Historia desvinculada del feed público.");
+      alert("Historia retirada del feed público.");
     }
   };
 
@@ -142,35 +139,35 @@ export const Editor: React.FC<EditorProps> = ({
     <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${theme === 'DARK' ? 'bg-black text-white' : theme === 'SEPIA' ? 'bg-[#f4ecd8] text-[#5d4037]' : 'bg-white text-ink-900'}`}>
       <audio ref={typewriterAudioRef} src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto" />
 
-      {/* Protocolo de Firma (Modal) */}
+      {/* Modal de Publicación Inicial */}
       {showPublishModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-black/5 flex flex-col items-center text-center space-y-8">
-            <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center animate-pulse">
+            <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center">
               <Icons.Publish size={40} />
             </div>
             <div>
-              <h3 className="text-2xl font-serif font-bold dark:text-white">Firma tu Manuscrito</h3>
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-40 mt-3">Elige tu identidad pública</p>
+              <h3 className="text-2xl font-serif font-bold dark:text-white">Protocolo de Firma</h3>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-40 mt-3">Publicación en Comunidad</p>
             </div>
             <div className="w-full space-y-4">
               <button 
                 onClick={() => finalizePublication(false)}
                 className="w-full py-5 bg-ink-900 dark:bg-white text-white dark:text-black rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
               >
-                Como {initialStory.authorName || "Mi Firma Real"}
+                Como {initialStory.authorName || "Mi Firma"}
               </button>
               <button 
                 onClick={() => finalizePublication(true)}
                 className="w-full py-5 bg-black/5 dark:bg-white/5 text-ink-900 dark:text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-black/10 transition-all border border-black/5"
               >
-                Firma Anónima
+                Anónimo
               </button>
               <button 
                 onClick={() => setShowPublishModal(false)}
                 className="w-full py-3 text-[9px] font-black uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
               >
-                Regresar al Studio
+                Cancelar
               </button>
             </div>
           </div>
@@ -183,28 +180,31 @@ export const Editor: React.FC<EditorProps> = ({
             <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.Back size={18} /></button>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-serif font-bold truncate max-w-[250px]">{story.title}</span>
-                {story.isPublished && <Icons.Globe size={10} className="text-amber-500" />}
+                <span className="text-xs font-serif font-bold truncate max-w-[200px]">{story.title}</span>
+                {story.isPublished && <Icons.Check size={10} className="text-amber-500" strokeWidth={4} />}
               </div>
               <span className="text-[9px] font-mono uppercase tracking-widest opacity-40">
-                {readOnly ? `Autor: ${story.authorName}` : `${totalWords} palabras registradas`}
+                {readOnly ? `Leyendo a: ${story.authorName}` : `${totalWords} palabras`}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {!readOnly && (
-              <button 
-                onClick={handleManualSave}
-                className={`p-2.5 rounded-xl flex items-center gap-2 transition-all ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'opacity-30'}`}
-              >
-                <Icons.Save size={18} />
-                <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{isSaving ? 'Fijando...' : 'Sincronizar'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                 {isDirty && <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 animate-pulse hidden md:block">Cambios sin guardar</span>}
+                 <button 
+                  onClick={handleManualSave}
+                  className={`p-2.5 rounded-xl flex items-center gap-2 transition-all ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'opacity-30'}`}
+                >
+                  <Icons.Save size={18} />
+                  <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{isSaving ? 'Fijando...' : 'Sincronizar'}</span>
+                </button>
+              </div>
             )}
             <button 
               onClick={() => setShowInspector(!showInspector)} 
-              className={`p-2.5 rounded-xl transition-all ${showInspector ? 'bg-amber-500 text-white' : 'hover:bg-black/5'}`}
+              className={`p-2.5 rounded-xl transition-all ${showInspector ? 'bg-amber-500 text-white shadow-lg' : 'hover:bg-black/5'}`}
             >
               <Icons.Magic size={18} />
             </button>
@@ -225,7 +225,7 @@ export const Editor: React.FC<EditorProps> = ({
                   setIsDirty(true); 
                   setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) })); 
                 }}
-                placeholder="Título de Escena..."
+                placeholder="Escena..."
               />
               <div
                 ref={editorRef} 
@@ -233,7 +233,7 @@ export const Editor: React.FC<EditorProps> = ({
                 onInput={handleInput} 
                 spellCheck={false}
                 className="flex-1 w-full bg-transparent outline-none font-serif leading-[2] text-lg md:text-xl pb-64 whitespace-pre-wrap"
-                data-placeholder={readOnly ? "" : "Escribe tu legado aquí..."}
+                data-placeholder={readOnly ? "" : "El papel espera tu historia..."}
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ export const Editor: React.FC<EditorProps> = ({
                     setStory(prev => ({ ...prev, pages: [...prev.pages, newPage] }));
                     setActivePageId(newPage.id);
                     setIsDirty(true);
-                  }} className="shrink-0 w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:rotate-90 transition-transform"><Icons.Plus size={20} /></button>
+                  }} className="shrink-0 w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"><Icons.Plus size={20} /></button>
                 )}
               </div>
             </div>
@@ -264,51 +264,63 @@ export const Editor: React.FC<EditorProps> = ({
 
         <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden'} ${theme === 'DARK' ? 'bg-ink-950' : 'bg-white'} border-l border-black/5 shadow-2xl`}>
           <div className="flex flex-col h-full w-full">
-            <div className="p-8 border-b border-black/5 flex justify-between items-center">
-              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Gestión de Obra</h2>
+            <div className="p-8 border-b border-black/5 flex justify-between items-center bg-black/[0.02]">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">Gestión de Obra</h2>
               <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.X size={18} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-12">
-              {/* Sección de Identidad y Publicación */}
+              {/* Card de Estado Público y Botón de Actualizar */}
               <div className="p-8 bg-black/5 dark:bg-white/5 rounded-[2.5rem] border border-black/5 space-y-6 text-center">
                 <div className="flex flex-col items-center gap-4">
-                   <Icons.Globe size={32} className={story.isPublished ? 'text-amber-500' : 'opacity-20'} />
-                   <h4 className="text-[10px] font-black uppercase tracking-widest">Protocolo Comunitario</h4>
+                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors ${story.isPublished ? 'bg-amber-500 text-white' : 'bg-ink-100 dark:bg-ink-800 text-ink-400'}`}>
+                      <Icons.Globe size={28} />
+                   </div>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xl font-serif italic font-bold">
-                    {story.isPublished ? (story.authorName === "Anónimo" ? "Identidad Oculta" : story.authorName) : "Borrador Privado"}
+                    {story.isPublished ? (story.authorName === "Anónimo" ? "Firma Anónima" : story.authorName) : "Borrador Privado"}
                   </p>
-                  <p className="text-[9px] font-mono opacity-40 uppercase tracking-widest">Visibilidad en Ecos</p>
+                  <p className="text-[9px] font-mono opacity-40 uppercase tracking-widest">Estado en Comunidad</p>
                 </div>
                 {!readOnly && (
-                  <div className="space-y-3">
-                    {!story.isPublished ? (
-                      <button 
-                        onClick={() => {
-                          if (!isUserLoggedIn) return alert("Inicia sesión para compartir tu obra.");
+                  <div className="space-y-3 pt-4">
+                    {/* Botón Maestro de Guardado / Actualización */}
+                    <button 
+                      onClick={() => {
+                        if (!isUserLoggedIn) return alert("Inicia sesión para usar el feed.");
+                        if (story.isPublished) {
+                          handleManualSave();
+                          alert("¡Obra actualizada en el feed comunitario!");
+                        } else {
                           setShowPublishModal(true);
-                        }}
-                        className="w-full py-5 bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
-                      >
-                        Publicar en Comunidad
-                      </button>
-                    ) : (
+                        }
+                      }}
+                      className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-3 ${story.isPublished ? 'bg-amber-500 text-white' : 'bg-ink-900 dark:bg-white text-white dark:text-black'}`}
+                    >
+                      {/* Fixed: Use Icons.Reset instead of Icons.RotateCcw as defined in components/Icon.tsx */}
+                      {story.isPublished ? <Icons.Reset size={16} /> : <Icons.Plus size={16} />}
+                      {story.isPublished ? 'Actualizar en Comunidad' : 'Publicar Ahora'}
+                    </button>
+                    
+                    {story.isPublished && (
                       <button 
                         onClick={handleUnpublish}
-                        className="w-full py-5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all border border-red-500/10"
+                        className="w-full py-4 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all border border-red-500/10"
                       >
-                        Retirar del Feed
+                        Retirar de Comunidad
                       </button>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Título de la Obra */}
+              {/* Título de la Obra Editable */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Nombre del Manuscrito</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Título del Manuscrito</label>
+                  {!readOnly && <Icons.Edit size={12} className="opacity-20" />}
+                </div>
                 <input 
                   type="text"
                   value={story.title}
@@ -318,14 +330,17 @@ export const Editor: React.FC<EditorProps> = ({
                     setStory(prev => ({ ...prev, title: e.target.value }));
                     setIsDirty(true);
                   }}
-                  className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-sm font-serif font-bold outline-none focus:ring-2 focus:ring-amber-500/30"
+                  className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-sm font-serif font-bold outline-none focus:ring-2 focus:ring-amber-500/30 transition-all"
                   placeholder="Sin título..."
                 />
               </div>
 
-              {/* Sinopsis */}
+              {/* Sinopsis Editable */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Sinopsis General</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Sinopsis del Libro</label>
+                  {!readOnly && <Icons.Edit size={12} className="opacity-20" />}
+                </div>
                 <textarea 
                   value={story.synopsis}
                   readOnly={readOnly}
@@ -334,21 +349,21 @@ export const Editor: React.FC<EditorProps> = ({
                     setStory(prev => ({ ...prev, synopsis: e.target.value }));
                     setIsDirty(true);
                   }}
-                  className="w-full p-6 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-serif italic leading-relaxed min-h-[180px] outline-none resize-none focus:ring-2 focus:ring-amber-500/30"
-                  placeholder="Describe el alma de tu historia..."
+                  className="w-full p-6 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-serif italic leading-relaxed min-h-[180px] outline-none resize-none focus:ring-2 focus:ring-amber-500/30 transition-all"
+                  placeholder="¿De qué trata este legado?..."
                 />
               </div>
 
-              {/* Géneros Literarios */}
+              {/* Selección de Géneros */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Géneros Literarios</label>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Géneros Sugeridos</label>
                 <div className="flex flex-wrap gap-2">
                   {ALL_GENRES.map(genre => (
                     <button
                       key={genre}
                       onClick={() => toggleGenre(genre as Genre)}
                       disabled={readOnly}
-                      className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all border ${story.genres.includes(genre as Genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-black/5 border-black/5 opacity-40'}`}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all border ${story.genres.includes(genre as Genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-black/5 border-black/5 opacity-40 hover:opacity-100'}`}
                     >
                       {genre}
                     </button>
@@ -356,10 +371,14 @@ export const Editor: React.FC<EditorProps> = ({
                 </div>
               </div>
 
-              <div className="pt-12 border-t border-black/5">
+              <div className="pt-12 border-t border-black/5 flex flex-col gap-2">
                  <div className="flex justify-between items-center opacity-30">
-                   <span className="text-[9px] font-black uppercase tracking-widest">Registro Original</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest">Creado el</span>
                    <span className="text-[10px] font-mono">{new Date(story.createdAt).toLocaleDateString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center opacity-30">
+                   <span className="text-[9px] font-black uppercase tracking-widest">Última Firma</span>
+                   <span className="text-[10px] font-mono">{new Date(story.updatedAt).toLocaleTimeString()}</span>
                  </div>
               </div>
             </div>
