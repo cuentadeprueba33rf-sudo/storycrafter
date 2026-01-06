@@ -22,15 +22,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const maxSlots = 9; // Límite estricto de 9 fotos
+  const currentCount = cloudImages.length;
+  const storagePercentage = (currentCount / maxSlots) * 100;
   const totalBytes = cloudImages.reduce((acc, img) => acc + img.size, 0);
-  const maxBytes = 10 * 1024 * 1024 * 1024; // Ajustado a 10 GB
-  const storagePercentage = (totalBytes / maxBytes) * 100;
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file: File) => {
+    const availableSlots = maxSlots - cloudImages.length;
+    if (availableSlots <= 0) {
+      alert("La Nube ha alcanzado su límite de 9 retratos maestros.");
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      alert(`Solo hay espacio para ${availableSlots} fotos más. Se omitirán las excedentes.`);
+    }
+
+    let newBatch: CloudImage[] = [];
+    let processedCount = 0;
+
+    filesToUpload.forEach((file: File) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newImg: CloudImage = {
@@ -40,10 +55,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           size: file.size,
           createdAt: Date.now()
         };
-        onUpdateCloud([...cloudImages, newImg]);
+        newBatch.push(newImg);
+        processedCount++;
+        
+        if (processedCount === filesToUpload.length) {
+          onUpdateCloud([...cloudImages, ...newBatch]);
+        }
       };
       reader.readAsDataURL(file);
     });
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleDeleteCloudImg = (id: string) => {
@@ -66,7 +88,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       icon: <Icons.Cloud size={14} />,
       action: () => setActiveModal('cloud'),
       primary: false,
-      extra: `${formatSize(totalBytes)} / 10GB`
+      extra: `${currentCount} / 9 Fotos`
     },
     {
       id: 'characters',
@@ -99,8 +121,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     },
     {
       id: 'updates',
-      title: 'v1.6.0',
-      description: 'Nube Optimizada',
+      title: 'v1.8.0',
+      description: 'Límite de 9 Fotos',
       icon: <Icons.Alert size={14} />,
       notify: true,
       action: () => setActiveModal('updates')
@@ -190,10 +212,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex flex-wrap gap-x-12 gap-y-6">
                 <div className="group">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Icons.Check size={10} className="text-green-500" /> La Nube Lab
+                    <Icons.Check size={10} className="text-green-500" /> La Nube
                   </h4>
                   <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
-                    Repositorio global de activos visuales. **Nuevo en v1.6**.
+                    Curaduría visual limitada a 9 retratos clave.
                   </p>
                 </div>
                 <div className="group">
@@ -201,7 +223,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <Icons.Check size={10} className="text-green-500" /> Character Lab
                   </h4>
                   <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
-                    Visualización y gestión de casting literario.
+                    Gestión de casting literario manual.
                   </p>
                 </div>
               </div>
@@ -211,7 +233,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="text-right">
                 <div className="text-[7px] font-mono text-ink-300 uppercase tracking-[0.4em] mb-1">Motor del Studio</div>
                 <div className="text-[9px] font-black text-ink-900 dark:text-white uppercase tracking-[0.2em] flex items-center justify-end gap-2">
-                  v1.6.0 <span className="text-green-500">●</span>
+                  v1.8.0 <span className="text-green-500">●</span>
                 </div>
               </div>
             </div>
@@ -220,55 +242,59 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {activeModal === 'cloud' && (
-        <Modal title="La Nube - Bóveda de Actores" onClose={() => setActiveModal(null)} wide>
+        <Modal title="La Nube - 9 Retratos Maestros" onClose={() => setActiveModal(null)} wide>
           <div className="flex flex-col gap-8">
-            <div className="flex justify-between items-center p-6 bg-black/5 dark:bg-white/5 rounded-3xl">
-               <div className="space-y-2 flex-1 mr-8">
+            <div className="flex flex-col md:flex-row justify-between items-center p-6 bg-black/5 dark:bg-white/5 rounded-3xl gap-6">
+               <div className="space-y-2 flex-1 w-full">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
-                    <span>Espacio en Nube</span>
-                    <span>{formatSize(totalBytes)} / 10 GB</span>
+                    <span>Espacio de Galería</span>
+                    <span>{currentCount} / {maxSlots} Fotos</span>
                   </div>
                   <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-ink-900 dark:bg-white transition-all duration-1000" 
-                      style={{ width: `${Math.max(1, storagePercentage)}%` }}
+                      className={`h-full transition-all duration-1000 ${currentCount >= maxSlots ? 'bg-amber-500' : 'bg-ink-900 dark:bg-white'}`} 
+                      style={{ width: `${Math.min(100, Math.max(1, storagePercentage))}%` }}
                     ></div>
                   </div>
                </div>
                <button 
                  onClick={() => fileInputRef.current?.click()}
-                 className="px-6 py-3 bg-ink-900 dark:bg-white text-white dark:text-black rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-transform"
+                 disabled={currentCount >= maxSlots}
+                 className={`px-6 py-3 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg transition-all ${currentCount >= maxSlots ? 'bg-ink-200 text-ink-400 cursor-not-allowed' : 'bg-ink-900 dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95'}`}
                >
-                 <Icons.Upload size={14} /> Subir Actores
+                 <Icons.Upload size={14} /> {currentCount >= maxSlots ? 'Galería Llena' : 'Subir Foto'}
                </button>
                <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*" onChange={handleUpload} />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-3 gap-6">
               {cloudImages.map(img => (
-                <div key={img.id} className="group relative aspect-square bg-black/5 dark:bg-white/5 rounded-2xl overflow-hidden border border-black/5">
-                  <img src={img.data} alt={img.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                    <p className="text-[8px] text-white font-mono truncate mb-1">{img.name}</p>
+                <div key={img.id} className="group relative aspect-square bg-black/5 dark:bg-white/5 rounded-3xl overflow-hidden border border-black/5 shadow-sm">
+                  <img src={img.data} alt={img.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5">
+                    <p className="text-[10px] text-white font-mono truncate mb-2">{img.name}</p>
                     <div className="flex justify-between items-center">
-                      <span className="text-[7px] text-white/60 uppercase">{formatSize(img.size)}</span>
+                      <span className="text-[8px] text-white/60 uppercase tracking-widest">{formatSize(img.size)}</span>
                       <button 
                         onClick={() => handleDeleteCloudImg(img.id)}
-                        className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg"
                       >
-                        <Icons.Delete size={10} />
+                        <Icons.Delete size={14} />
                       </button>
                     </div>
                   </div>
                 </div>
               ))}
-              {cloudImages.length === 0 && (
-                <div className="col-span-full py-20 border border-dashed border-black/10 rounded-[2rem] flex flex-col items-center justify-center opacity-20">
-                  <Icons.Cloud size={48} strokeWidth={1} className="mb-4" />
-                  <p className="text-xs uppercase tracking-[0.2em] font-black">Nube Vacía</p>
+              {Array.from({ length: Math.max(0, maxSlots - currentCount) }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square border-2 border-dashed border-black/5 dark:border-white/5 rounded-3xl flex items-center justify-center opacity-20 group transition-all hover:opacity-40">
+                  <span className="text-[10px] font-black opacity-10 italic">Slot {currentCount + i + 1}</span>
                 </div>
-              )}
+              ))}
             </div>
+            
+            <p className="text-center text-[9px] font-serif italic text-ink-400 opacity-60">
+              "La brevedad es el alma de la elegancia visual."
+            </p>
           </div>
         </Modal>
       )}
@@ -286,19 +312,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">NADIA CAROLINA</p>
               </div>
             </div>
-            <div className="pt-10">
-              <p className="text-[8px] font-mono text-ink-400 uppercase tracking-widest italic leading-relaxed">
-                Hecho con la convicción de que<br/>la tecnología debe servir a la pluma.
-              </p>
-            </div>
           </div>
         </Modal>
       )}
 
       {activeModal === 'no-ai' && (
         <Modal title="Human-First" onClose={() => setActiveModal(null)}>
-          <div className="py-10 text-center italic text-xl font-serif">
-            "La palabra es el único territorio donde la máquina no puede entrar sin permiso."
+          <div className="py-10 text-center italic text-xl font-serif text-ink-900 dark:text-white leading-relaxed">
+            "La palabra es el único territorio donde la máquina no puede entrar sin permiso. StoryCraft es el refugio del autor."
+          </div>
+        </Modal>
+      )}
+      
+      {activeModal === 'updates' && (
+        <Modal title="Novedades v1.8.0" onClose={() => setActiveModal(null)}>
+           <div className="space-y-6 py-4">
+            <div className="flex gap-4">
+              <div className="h-2 w-2 bg-ink-900 dark:bg-white rounded-full mt-1.5 shrink-0"></div>
+              <p><strong className="uppercase tracking-widest text-[10px]">Cuota Visual</strong>: La Nube ahora se limita estrictamente a 9 fotos para promover una curaduría visual más profunda.</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="h-2 w-2 bg-ink-900 dark:bg-white rounded-full mt-1.5 shrink-0"></div>
+              <p><strong className="uppercase tracking-widest text-[10px]">Optimización</strong>: Mejora en la carga de archivos para el Casting Lab.</p>
+            </div>
           </div>
         </Modal>
       )}
