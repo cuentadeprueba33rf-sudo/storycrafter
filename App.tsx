@@ -55,7 +55,8 @@ function App() {
       folderId: currentFolderId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'I', content: '', order: 0 }]
+      pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'I', content: '', order: 0 }],
+      characters: []
     };
     setData(prev => ({ ...prev, stories: [newStory, ...prev.stories] }));
     setActiveStoryId(newStory.id);
@@ -98,7 +99,7 @@ function App() {
         <div className="flex flex-col items-center animate-pulse">
           <div className="mb-6 p-4 border border-ink-200 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Preparando tu escritorio...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Preparando tu casting...</div>
         </div>
       </div>
     );
@@ -119,7 +120,12 @@ function App() {
       )}
 
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
-        {view === 'HOME' && <Dashboard onEnterStudio={() => setView('LIBRARY')} />}
+        {view === 'HOME' && (
+          <Dashboard 
+            onEnterStudio={() => setView('LIBRARY')} 
+            onEnterCharacters={() => setView('LIBRARY')} // Redirigir a biblioteca para seleccionar historia
+          />
+        )}
         {view === 'LIBRARY' && (
           <Library
             stories={data.stories} folders={data.folders} currentFolderId={currentFolderId}

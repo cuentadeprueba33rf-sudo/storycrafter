@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Story, Page, Genre, StoryStatus, EditorTheme } from '../types';
+import { Story, Page, Character, Genre, StoryStatus, EditorTheme } from '../types';
 import { Icons } from './Icon';
 import { ALL_GENRES, ALL_STATUSES, ID_PREFIX } from '../constants';
 import { countWords, generateId } from '../utils/storage';
@@ -14,7 +14,7 @@ interface EditorProps {
   onChangeTheme: (theme: EditorTheme) => void;
 }
 
-type InspectorTab = 'metas' | 'biblia' | 'detalles';
+type InspectorTab = 'metas' | 'biblia' | 'casting' | 'detalles';
 
 export const Editor: React.FC<EditorProps> = ({ 
   story: initialStory, 
@@ -24,7 +24,7 @@ export const Editor: React.FC<EditorProps> = ({
   theme,
   onChangeTheme
 }) => {
-  const [story, setStory] = useState<Story>(initialStory);
+  const [story, setStory] = useState<Story>({ ...initialStory, characters: initialStory.characters || [] });
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
   const [showInspector, setShowInspector] = useState(false);
   const [showChapterBar, setShowChapterBar] = useState(true);
@@ -34,9 +34,9 @@ export const Editor: React.FC<EditorProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const activePage = story.pages.find(p => p.id === activePageId);
 
-  // Sincronizar contenido del editor con la página activa
   useEffect(() => {
     if (editorRef.current && activePage) {
       if (editorRef.current.innerHTML !== activePage.content) {
@@ -45,7 +45,6 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
-  // Guardado automático
   useEffect(() => {
     if (!isDirty) return;
     const timer = setTimeout(() => {
@@ -76,6 +75,43 @@ export const Editor: React.FC<EditorProps> = ({
     }, 600);
   };
 
+  const handleAddCharacter = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const name = prompt("Nombre del personaje:");
+      if (!name) return;
+      
+      const newChar: Character = {
+        id: generateId('char_'),
+        name: name,
+        image: reader.result as string,
+        description: ""
+      };
+
+      setStory(prev => ({
+        ...prev,
+        characters: [...(prev.characters || []), newChar]
+      }));
+      setIsDirty(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeleteCharacter = (id: string) => {
+    setStory(prev => ({
+      ...prev,
+      characters: prev.characters.filter(c => c.id !== id)
+    }));
+    setIsDirty(true);
+  };
+
   const handleAddPage = () => {
     const newPage: Page = {
       id: generateId(ID_PREFIX.PAGE),
@@ -86,25 +122,6 @@ export const Editor: React.FC<EditorProps> = ({
     setIsDirty(true);
     setStory(prev => ({ ...prev, pages: [...prev.pages, newPage] }));
     setActivePageId(newPage.id);
-  };
-
-  const handleDeletePage = (id: string) => {
-    if (story.pages.length <= 1) return;
-    if (window.confirm("¿Eliminar definitivamente este capítulo?")) {
-      const newPages = story.pages.filter(p => p.id !== id);
-      setStory(prev => ({ ...prev, pages: newPages }));
-      if (activePageId === id) setActivePageId(newPages[0].id);
-      setIsDirty(true);
-    }
-  };
-
-  const movePage = (index: number, direction: 'left' | 'right') => {
-    const newPages = [...story.pages];
-    const target = direction === 'left' ? index - 1 : index + 1;
-    if (target < 0 || target >= newPages.length) return;
-    [newPages[index], newPages[target]] = [newPages[target], newPages[index]];
-    setStory(prev => ({ ...prev, pages: newPages }));
-    setIsDirty(true);
   };
 
   const totalWords = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
@@ -129,7 +146,6 @@ export const Editor: React.FC<EditorProps> = ({
   return (
     <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${getThemeClasses()}`}>
       
-      {/* HEADER: Z-INDEX 100 PARA ESTAR SIEMPRE ARRIBA */}
       {!zenMode && (
         <header className="flex items-center justify-between px-6 py-3 border-b border-black/5 z-[100] shrink-0 bg-inherit">
           <div className="flex items-center gap-4">
@@ -167,13 +183,8 @@ export const Editor: React.FC<EditorProps> = ({
         </header>
       )}
 
-      {/* ÁREA DE TRABAJO: FLEX PARA MANEJAR PANELES SIN SOLAPAMIENTOS */}
       <div className="flex-1 flex overflow-hidden relative">
-        
-        {/* CONTENEDOR CENTRAL: EDITOR + BARRA INFERIOR */}
         <main className="flex-1 flex flex-col min-w-0 relative bg-inherit z-10">
-          
-          {/* LIENZO DE ESCRITURA */}
           <div className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-500 ${zenMode ? 'p-10 md:p-32' : 'p-6 md:p-12 lg:p-20'}`}>
             <div className="max-w-2xl mx-auto min-h-full flex flex-col">
               <div className="mb-10">
@@ -197,7 +208,6 @@ export const Editor: React.FC<EditorProps> = ({
             </div>
           </div>
 
-          {/* GESTOR DE CAPÍTULOS INFERIOR: ESTILO DOCK */}
           {!zenMode && (
             <div className={`shrink-0 border-t border-black/5 transition-all duration-300 overflow-hidden ${getPanelBg()} ${showChapterBar ? 'h-36' : 'h-0'}`}>
               <div className="h-full flex flex-col">
@@ -221,14 +231,6 @@ export const Editor: React.FC<EditorProps> = ({
                         : 'bg-black/[0.03] dark:bg-white/[0.03] border-transparent hover:border-black/10'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[8px] font-mono opacity-40 uppercase">ORD {i + 1}</span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={(e) => { e.stopPropagation(); movePage(i, 'left'); }} disabled={i === 0} className="p-0.5 hover:bg-black/10 rounded"><Icons.ChevronRight size={10} className="rotate-180" /></button>
-                          <button onClick={(e) => { e.stopPropagation(); movePage(i, 'right'); }} disabled={i === story.pages.length - 1} className="p-0.5 hover:bg-black/10 rounded"><Icons.ChevronRight size={10} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); handleDeletePage(p.id); }} className="p-0.5 hover:bg-red-500 hover:text-white rounded"><Icons.Delete size={10} /></button>
-                        </div>
-                      </div>
                       <h4 className="text-[11px] font-serif font-bold truncate">{p.title || "Sin título"}</h4>
                       <p className="text-[8px] mt-1 opacity-40 uppercase tracking-tighter">{countWords(p.content)} palabras</p>
                     </div>
@@ -237,20 +239,8 @@ export const Editor: React.FC<EditorProps> = ({
               </div>
             </div>
           )}
-
-          {/* BOTÓN PARA REABRIR EL DOCK (Si está cerrado) */}
-          {!zenMode && !showChapterBar && (
-            <button 
-              onClick={() => setShowChapterBar(true)}
-              className="absolute bottom-6 left-6 bg-ink-900 dark:bg-white text-white dark:text-black p-3 rounded-full shadow-2xl z-50 hover:scale-110 transition-all"
-              title="Abrir mapa de capítulos"
-            >
-              <Icons.List size={18} />
-            </button>
-          )}
         </main>
 
-        {/* INSPECTOR LATERAL: Z-INDEX 80 Y FONDO TOTALMENTE OPACO */}
         {!zenMode && (
           <aside className={`
             fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out shadow-2xl lg:shadow-none
@@ -263,12 +253,12 @@ export const Editor: React.FC<EditorProps> = ({
                   <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Inspector</h2>
                   <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.Back size={18} className="rotate-180" /></button>
                 </div>
-                <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl">
-                  {(['metas', 'biblia', 'detalles'] as InspectorTab[]).map(tab => (
+                <div className="grid grid-cols-4 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
+                  {(['metas', 'biblia', 'casting', 'detalles'] as InspectorTab[]).map(tab => (
                     <button 
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60 hover:opacity-100'}`}
+                      className={`py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60 hover:opacity-100'}`}
                     >
                       {tab}
                     </button>
@@ -280,75 +270,81 @@ export const Editor: React.FC<EditorProps> = ({
                 {activeTab === 'metas' && (
                   <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
                     <section>
-                      <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Objetivo de la Obra</label>
+                      <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Objetivo</label>
                       <div className="relative">
                         <input 
                           type="number"
-                          className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-4 text-sm font-bold outline-none ring-1 ring-black/5 focus:ring-current/20 transition-all"
+                          className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-4 text-sm font-bold outline-none"
                           value={story.wordCountGoal}
                           onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, wordCountGoal: parseInt(e.target.value) || 0 })); }}
-                          placeholder="Ej: 50,000"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-mono opacity-30">PALABRAS</span>
                       </div>
                       <div className="mt-8 p-6 border border-black/5 rounded-3xl bg-white/5">
-                        <div className="flex justify-between text-[10px] font-mono mb-2">
-                          <span className="opacity-40 uppercase">Progreso Real</span>
-                          <span className="font-bold">{progressPercent.toFixed(1)}%</span>
-                        </div>
-                        <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-ink-900 dark:bg-white transition-all duration-1000 shadow-lg" style={{ width: `${progressPercent}%` }}></div>
+                        <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-ink-900 dark:bg-white transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
                         </div>
                         <p className="text-[10px] opacity-40 mt-4 text-center font-mono">{totalWords.toLocaleString()} / {story.wordCountGoal.toLocaleString() || '∞'}</p>
-                      </div>
-                    </section>
-                    
-                    <section>
-                      <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Estado de Producción</label>
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {ALL_STATUSES.map(s => (
-                          <button 
-                            key={s} 
-                            onClick={() => { setIsDirty(true); setStory(prev => ({ ...prev, status: s })); }}
-                            className={`text-left px-5 py-3 text-[10px] font-bold rounded-xl transition-all border ${story.status === s ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'border-transparent hover:bg-black/5 text-ink-400'}`}
-                          >
-                            {s}
-                          </button>
-                        ))}
                       </div>
                     </section>
                   </div>
                 )}
 
                 {activeTab === 'biblia' && (
-                  <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                    <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Biblia de la Historia</label>
-                    <textarea 
-                      className="flex-1 w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-6 text-sm font-serif leading-relaxed outline-none resize-none ring-1 ring-black/5 focus:ring-current/20 transition-all"
-                      value={story.bible || ''}
-                      onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, bible: e.target.value })); }}
-                      placeholder="Anota aquí detalles de tus personajes, lugares y reglas del mundo..."
-                    />
+                  <textarea 
+                    className="h-full w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-6 text-xs font-serif leading-relaxed outline-none resize-none"
+                    value={story.bible || ''}
+                    onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, bible: e.target.value })); }}
+                    placeholder="Notas de mundo..."
+                  />
+                )}
+
+                {activeTab === 'casting' && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-mono opacity-40 uppercase">Reparto de la Obra</label>
+                      <button 
+                        onClick={handleAddCharacter}
+                        className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full hover:scale-110 transition-transform"
+                      >
+                        <Icons.UserPlus size={14} />
+                      </button>
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      {story.characters?.map(char => (
+                        <div key={char.id} className="group relative flex items-center gap-4 p-3 bg-black/[0.02] dark:bg-white/[0.02] rounded-2xl border border-black/5">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-black/10 shrink-0">
+                            <img src={char.image} alt={char.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest truncate">{char.name}</h4>
+                            <p className="text-[8px] opacity-40 truncate">Personaje secundario</p>
+                          </div>
+                          <button 
+                            onClick={() => handleDeleteCharacter(char.id)}
+                            className="p-2 opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50 rounded-full transition-all"
+                          >
+                            <Icons.Delete size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {(!story.characters || story.characters.length === 0) && (
+                        <div className="py-12 border border-dashed border-black/10 rounded-3xl flex flex-col items-center justify-center opacity-30">
+                          <Icons.Characters size={24} className="mb-2" />
+                          <p className="text-[9px] uppercase tracking-widest">Sin personajes aún</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {activeTab === 'detalles' && (
-                  <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <section>
-                      <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Sinopsis / Pitch</label>
-                      <textarea 
-                        className="w-full h-56 bg-black/5 dark:bg-white/5 border-none rounded-2xl p-6 text-xs font-serif leading-relaxed outline-none resize-none ring-1 ring-black/5 focus:ring-current/20 transition-all"
-                        value={story.synopsis}
-                        onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, synopsis: e.target.value })); }}
-                        placeholder="El núcleo de tu historia en pocas palabras..."
-                      />
-                    </section>
-                    <section className="pt-4">
-                      <button onClick={onShare} className="w-full py-4 bg-ink-900 dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] shadow-xl">
+                   <section className="pt-4">
+                      <button onClick={onShare} className="w-full py-4 bg-ink-900 dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl">
                         <Icons.Share size={14} /> Compartir Borrador
                       </button>
                     </section>
-                  </div>
                 )}
               </div>
             </div>
@@ -356,28 +352,15 @@ export const Editor: React.FC<EditorProps> = ({
         )}
       </div>
 
-      {/* FOOTER: Z-INDEX ALTO PARA CUBRIR POSIBLES FUGAS */}
       {!zenMode && (
         <footer className="px-6 py-2 border-t border-black/5 bg-inherit z-[110] text-[9px] font-mono flex justify-between items-center shrink-0">
           <div className="flex items-center gap-4 opacity-40">
-            <span className="flex items-center gap-1.5 uppercase tracking-widest"><Icons.Pen size={10} /> Escena actual: {countWords(activePage?.content || '')} palabras</span>
+            <span className="flex items-center gap-1.5 uppercase tracking-widest"><Icons.Pen size={10} /> Escena actual: {countWords(activePage?.content || '')}</span>
           </div>
           <div className="flex items-center gap-4">
-            {isDirty && <span className="text-amber-500 font-black uppercase tracking-tighter">● Guardando cambios...</span>}
-            {!isDirty && <span className="opacity-20 uppercase font-black tracking-widest">StoryCraft Studio v1.4</span>}
+            {isDirty && <span className="text-amber-500 font-black uppercase tracking-tighter">● Guardando...</span>}
           </div>
         </footer>
-      )}
-
-      {/* BOTÓN SALIDA MODO ZEN */}
-      {zenMode && (
-        <button 
-          onClick={() => setZenMode(false)} 
-          className="fixed bottom-8 right-8 z-[200] p-4 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full shadow-2xl hover:scale-110 transition-all"
-          title="Salir del Modo Zen"
-        >
-          <Icons.ZenClose size={24} />
-        </button>
       )}
     </div>
   );

@@ -34,7 +34,11 @@ import {
   Minimize2,
   Book,
   Coffee,
-  Target
+  Target,
+  Users,
+  Image as ImageIcon,
+  UserPlus,
+  X
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -85,5 +89,9 @@ export const Icons = {
   ZenClose: Minimize2,
   Bible: Book,
   Sepia: Coffee,
-  Target
+  Target,
+  Characters: Users,
+  Image: ImageIcon,
+  UserPlus,
+  X
 };

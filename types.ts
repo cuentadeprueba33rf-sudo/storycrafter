@@ -21,6 +21,13 @@ export enum StoryStatus {
   Finished = 'Finalizado',
 }
 
+export interface Character {
+  id: string;
+  name: string;
+  image: string; // Base64 data
+  description: string;
+}
+
 export interface Page {
   id: string;
   title: string;
@@ -32,14 +39,15 @@ export interface Story {
   id: string;
   title: string;
   synopsis: string;
-  bible: string; // Notas de personajes y mundo
-  wordCountGoal: number; // Meta de palabras
+  bible: string;
+  wordCountGoal: number;
   genres: Genre[];
   status: StoryStatus;
   folderId: string | null;
   createdAt: number;
   updatedAt: number;
   pages: Page[];
+  characters: Character[];
 }
 
 export interface Folder {
@@ -49,7 +57,7 @@ export interface Folder {
   createdAt: number;
 }
 
-export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR';
+export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR' | 'CHARACTERS';
 
 export type LibraryViewMode = 'LIST' | 'GRID';
 

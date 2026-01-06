@@ -4,64 +4,73 @@ import { Icons } from './Icon';
 
 interface DashboardProps {
   onEnterStudio: () => void;
+  onEnterCharacters: () => void;
 }
 
 type ModalType = 'docs' | 'usage' | 'updates' | 'no-ai' | null;
 
-export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio, onEnterCharacters }) => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const sections = [
     {
       id: 'studio',
       title: 'Studio',
-      description: 'Gestión de manuscritos.',
-      icon: <Icons.Pen size={16} />,
+      description: 'Manuscritos',
+      icon: <Icons.Pen size={14} />,
       action: onEnterStudio,
       primary: true
     },
     {
+      id: 'characters',
+      title: 'Casting',
+      description: 'Personajes',
+      icon: <Icons.Characters size={14} />,
+      action: onEnterCharacters,
+      primary: false
+    },
+    {
       id: 'no-ai',
       title: 'Human-First',
-      description: 'Escritura orgánica.',
-      icon: <Icons.NoAI size={16} />,
+      description: 'Sin Algoritmos',
+      icon: <Icons.NoAI size={14} />,
       action: () => setActiveModal('no-ai')
     },
     {
       id: 'docs',
-      title: 'Estructura',
-      description: 'Jerarquía del taller.',
-      icon: <Icons.Docs size={16} />,
+      title: 'Sistema',
+      description: 'Estructura',
+      icon: <Icons.Docs size={14} />,
       action: () => setActiveModal('docs')
     },
     {
       id: 'usage',
-      title: 'Atajos',
-      description: 'Flujo de trabajo.',
-      icon: <Icons.Terminal size={16} />,
+      title: 'Comandos',
+      description: 'Productividad',
+      icon: <Icons.Terminal size={14} />,
       action: () => setActiveModal('usage')
     },
     {
       id: 'updates',
-      title: 'v1.4.2',
-      description: 'Estable.',
-      icon: <Icons.Alert size={16} />,
+      title: 'v1.5.0',
+      description: 'Casting Up',
+      icon: <Icons.Alert size={14} />,
       notify: true,
       action: () => setActiveModal('updates')
     }
   ];
 
   const Modal = ({ title, children, onClose }: { title: string, children?: React.ReactNode, onClose: () => void }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink-950/20 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white/95 dark:bg-ink-900/95 backdrop-blur-2xl w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-black/5 animate-in zoom-in-95 duration-300 overflow-hidden">
-        <div className="p-10">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-serif font-bold text-ink-900 dark:text-white">{title}</h2>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink-950/40 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="bg-white/95 dark:bg-ink-950/95 backdrop-blur-3xl w-full max-w-lg rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] border border-black/5 animate-in zoom-in-95 duration-500 overflow-hidden">
+        <div className="p-12">
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-xl font-serif font-bold text-ink-900 dark:text-white tracking-tight">{title}</h2>
             <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors">
-              <Icons.ZenClose size={20} />
+              <Icons.ZenClose size={18} />
             </button>
           </div>
-          <div className="prose dark:prose-invert max-w-none text-ink-600 dark:text-ink-400 text-sm leading-relaxed font-serif">
+          <div className="prose dark:prose-invert max-w-none text-ink-600 dark:text-ink-400 text-xs leading-relaxed font-serif">
             {children}
           </div>
         </div>
@@ -70,142 +79,126 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio }) => {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-ink-50 dark:bg-black p-6 md:p-16 lg:p-24 relative overflow-hidden custom-scrollbar">
-      {/* Sutil gradiente de profundidad */}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(0,0,0,0.02),transparent)] pointer-events-none"></div>
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-ink-50 dark:bg-black p-8 md:p-20 lg:p-32 relative overflow-hidden custom-scrollbar">
+      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-ink-200/10 dark:bg-white/5 rounded-full blur-[120px] pointer-events-none"></div>
       
-      <div className="max-w-6xl mx-auto w-full flex flex-col min-h-full relative z-10">
-        
-        {/* Branding de Lujo */}
-        <header className="mb-20 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="flex items-center gap-4 mb-6">
-            <span className="text-[9px] font-mono uppercase tracking-[0.6em] text-ink-400">Artesanía Literaria</span>
-            <div className="flex-1 h-[1px] bg-ink-900 dark:bg-white opacity-5"></div>
+      <div className="max-w-5xl mx-auto w-full flex flex-col min-h-full relative z-10">
+        <header className="mb-16 animate-in fade-in slide-in-from-top-4 duration-1000">
+          <div className="flex items-center gap-6 mb-8">
+            <div className="h-[1px] w-12 bg-ink-900 dark:bg-white"></div>
+            <span className="text-[8px] font-black uppercase tracking-[0.8em] text-ink-400">Atelier Literario</span>
           </div>
-          <h1 className="text-6xl md:text-8xl font-serif font-medium tracking-tighter text-ink-900 dark:text-white leading-none">
-            Story<span className="italic font-light opacity-60">Craft</span>
+          <h1 className="text-7xl md:text-9xl font-serif font-light tracking-tighter text-ink-900 dark:text-white leading-none">
+            Story<span className="opacity-30">Craft</span>
           </h1>
         </header>
 
-        {/* Manifiesto Refinado */}
-        <div className="mb-24 max-w-xl animate-in fade-in slide-in-from-left duration-1000 delay-100">
-          <p className="text-xl md:text-2xl font-serif leading-relaxed text-ink-800 dark:text-ink-200">
+        <div className="mb-20 max-lg animate-in fade-in slide-in-from-left duration-1000 delay-100">
+          <p className="text-lg md:text-xl font-serif leading-relaxed text-ink-800 dark:text-ink-300">
             Escritura pura para autores que dominan su oficio. 
-            <span className="block mt-4 text-ink-400 font-sans text-[10px] uppercase tracking-[0.3em] font-black opacity-50">
-              Sin distracciones • Sin algoritmos
+            <span className="block mt-6 text-ink-400 font-sans text-[9px] uppercase tracking-[0.4em] font-black opacity-40">
+              Absencia de Algoritmo • Presencia de Autor
             </span>
           </p>
         </div>
 
-        {/* Consola de Herramientas (Cards Micro) */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-[8px] font-black uppercase tracking-[0.4em] text-ink-400">Módulos de Control</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
             {sections.map((sec) => (
               <button 
                 key={sec.id}
                 onClick={sec.action}
                 className={`
-                  group relative p-4 text-left transition-all duration-500 rounded-2xl border flex flex-col justify-between h-36
+                  group relative px-4 py-3 text-left transition-all duration-700 rounded-xl border flex items-center gap-4
                   ${sec.primary 
-                    ? 'bg-ink-950 dark:bg-white text-white dark:text-black border-transparent shadow-lg hover:shadow-2xl hover:-translate-y-1' 
-                    : 'bg-white/50 dark:bg-ink-900/20 backdrop-blur-sm border-black/[0.03] dark:border-white/[0.03] hover:border-black/10 dark:hover:border-white/10 hover:-translate-y-0.5'}
+                    ? 'bg-ink-950 dark:bg-white text-white dark:text-black border-transparent shadow-md hover:shadow-xl hover:scale-[1.02]' 
+                    : 'bg-white/40 dark:bg-ink-900/10 border-black/[0.04] dark:border-white/[0.04] hover:bg-white dark:hover:bg-ink-900/30 hover:border-black/10 dark:hover:border-white/10'}
                 `}
               >
-                <div className="flex justify-between items-start">
-                  <div className={`p-1.5 rounded-lg border ${sec.primary ? 'border-white/10 dark:border-black/5' : 'border-black/5 dark:border-white/5 bg-black/[0.01]'}`}>
-                    {sec.icon}
-                  </div>
-                  {sec.notify && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
-                  )}
+                <div className={`shrink-0 p-1.5 rounded-lg border ${sec.primary ? 'border-white/10 dark:border-black/5' : 'border-black/5 dark:border-white/5 opacity-40'}`}>
+                  {sec.icon}
                 </div>
                 
-                <div>
-                  <h3 className="text-[11px] font-bold mb-0.5 tracking-tight uppercase">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[10px] font-black mb-0 tracking-widest uppercase truncate">
                     {sec.title}
                   </h3>
-                  <p className={`text-[8px] leading-tight opacity-40 font-medium`}>
+                  <p className={`text-[8px] font-serif italic opacity-40 truncate`}>
                     {sec.description}
                   </p>
                 </div>
+
+                {sec.notify && (
+                  <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse"></span>
+                )}
               </button>
             ))}
 
-            {/* Slots de Expansión (Look ultra-ligero) */}
-            {[1, 2].map((i) => (
-              <div key={i} className="p-4 rounded-2xl border border-dashed border-black/[0.05] dark:border-white/[0.05] flex flex-col items-center justify-center opacity-10 grayscale">
+            <div className="px-4 py-3 rounded-xl border border-dashed border-black/[0.05] dark:border-white/[0.05] flex items-center justify-center opacity-10 grayscale">
                  <Icons.Plus size={12} />
-              </div>
-            ))}
+            </div>
           </div>
         </div>
 
-        {/* SECCIÓN DE FUTURAS EXTENSIONES (Studio Layers) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-12 border-t border-black/5 dark:border-white/5 animate-in fade-in duration-1000 delay-500">
-          <div className="col-span-1 md:col-span-2 space-y-8">
-            <h3 className="text-[8px] font-black uppercase tracking-[0.4em] text-ink-300">Próximas Capas del Studio</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <div className="group cursor-help">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-ink-300 opacity-20 group-hover:opacity-100 transition-opacity"></div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink-900 dark:text-white">World Builder</h4>
+        <div className="mt-auto pt-16 border-t border-black/5 dark:border-white/5 animate-in fade-in duration-1000 delay-300">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+            <div className="flex-1 space-y-6">
+              <h3 className="text-[8px] font-black uppercase tracking-[0.5em] text-ink-300">Arquitectura del Studio</h3>
+              <div className="flex flex-wrap gap-x-12 gap-y-6">
+                <div className="group">
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Icons.Check size={10} className="text-green-500" /> Character Lab
+                  </h4>
+                  <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
+                    Visualización y gestión de casting literario. **Activo en v1.5**.
+                  </p>
                 </div>
-                <p className="text-[10px] text-ink-400 font-serif leading-relaxed italic pr-8">
-                  Módulo de cartografía léxica y genealogía de personajes. Integración modular en v1.5.
-                </p>
-              </div>
-              <div className="group cursor-help">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-ink-300 opacity-20 group-hover:opacity-100 transition-opacity"></div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink-900 dark:text-white">Timeline Lab</h4>
+                <div className="group">
+                  <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Icons.Plus size={10} className="opacity-20" /> Chronos Lab
+                  </h4>
+                  <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
+                    Visualización de hilos narrativos no lineales.
+                  </p>
                 </div>
-                <p className="text-[10px] text-ink-400 font-serif leading-relaxed italic pr-8">
-                  Cronologías no lineales con visualización de hilos narrativos. Desarrollo activo.
-                </p>
               </div>
             </div>
-          </div>
-          
-          <div className="flex flex-col md:items-end justify-end gap-6 border-l md:border-l-0 md:border-t-0 border-black/5 pl-6 md:pl-0">
-             <div className="flex flex-col md:items-end gap-1">
-               <span className="text-[8px] font-mono text-ink-300 uppercase tracking-[0.2em]">Estado del Kernel</span>
-               <span className="text-[9px] font-black text-ink-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                 <span className="w-1 h-1 rounded-full bg-green-500"></span> 
-                 v1.4.2 ESTABLE
-               </span>
-             </div>
-             <div className="flex gap-4 text-[8px] font-mono text-ink-200 uppercase tracking-widest">
-              <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Lab</span>
-              <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Docs</span>
+
+            <div className="shrink-0 flex flex-col items-end gap-6">
+              <div className="text-right">
+                <div className="text-[7px] font-mono text-ink-300 uppercase tracking-[0.4em] mb-1">Motor del Studio</div>
+                <div className="text-[9px] font-black text-ink-900 dark:text-white uppercase tracking-[0.2em] flex items-center justify-end gap-2">
+                  v1.5.0 <span className="text-green-500">●</span>
+                </div>
+              </div>
+              <div className="flex gap-6 text-[8px] font-mono text-ink-300 uppercase tracking-widest">
+                <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Repositorio</span>
+                <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Legal</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modales con Refinamiento Visual */}
       {activeModal === 'docs' && (
-        <Modal title="Sistema de Studio" onClose={() => setActiveModal(null)}>
-          <div className="space-y-6">
-            <p className="text-sm">StoryCraft utiliza un paradigma de <strong>Celdas de Escritura</strong>. Cada proyecto es un ecosistema modular diseñado para la longevidad digital.</p>
-            <p className="text-xs opacity-60">La arquitectura actual permite la gestión de manuscritos complejos mediante una jerarquía plana pero escalable.</p>
+        <Modal title="Filosofía del Sistema" onClose={() => setActiveModal(null)}>
+          <div className="space-y-8">
+            <p>StoryCraft Studio opera bajo un paradigma de <strong>Escritura de Precisión</strong>. No es una herramienta de edición masiva, sino un espacio de concentración absoluta.</p>
+            <p className="opacity-60 italic">Cada píxel está diseñado para no competir con tu imaginación.</p>
           </div>
         </Modal>
       )}
 
       {activeModal === 'usage' && (
-        <Modal title="Manual de Operaciones" onClose={() => setActiveModal(null)}>
-          <div className="space-y-6">
-            <div className="p-4 border border-black/5 rounded-2xl bg-black/[0.01]">
-              <h4 className="text-[10px] font-black uppercase tracking-widest mb-3">Modo Zen</h4>
-              <p className="text-xs">Altamente recomendado para primeras versiones. Pulsa el icono de expansión para entrar en el estado de flujo absoluto.</p>
+        <Modal title="Instrucciones de Vuelo" onClose={() => setActiveModal(null)}>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <h4 className="text-[9px] font-black uppercase tracking-widest">Estado Zen</h4>
+              <p className="text-[10px] opacity-60">F11 para inmersión total en el navegador junto con nuestro modo de expansión interna.</p>
             </div>
-            <div className="p-4 border border-black/5 rounded-2xl bg-black/[0.01]">
-              <h4 className="text-[10px] font-black uppercase tracking-widest mb-3">Sync Local</h4>
-              <p className="text-xs">Tus datos nunca abandonan este navegador. El guardado es instantáneo y persistente mediante el motor de base de datos local.</p>
+            <div className="space-y-2">
+              <h4 className="text-[9px] font-black uppercase tracking-widest">Persistencia</h4>
+              <p className="text-[10px] opacity-60">Guardado asíncrono en disco local. Tus datos son propiedad privada de tu hardware.</p>
             </div>
           </div>
         </Modal>
@@ -213,12 +206,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio }) => {
 
       {activeModal === 'no-ai' && (
         <Modal title="Manifiesto Humano" onClose={() => setActiveModal(null)}>
-          <div className="space-y-8 text-center py-4">
-            <p className="text-2xl font-serif italic text-ink-900 dark:text-white leading-snug">
-              "La literatura es la última trinchera de la subjetividad humana."
+          <div className="space-y-10 py-6 text-center">
+            <p className="text-3xl font-serif italic text-ink-950 dark:text-white leading-tight">
+              "La palabra es el único territorio donde la máquina no puede entrar sin permiso."
             </p>
-            <p className="text-xs uppercase tracking-[0.2em] opacity-50">
-              StoryCraft Studio rechaza cualquier forma de asistencia algorítmica.<br/>Protegemos tu voz original.
+            <div className="h-[1px] w-8 bg-ink-200 mx-auto"></div>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-black opacity-40 leading-relaxed">
+              En StoryCraft Studio, prohibimos el uso de modelos generativos.<br/>Abogamos por la belleza de la errata humana.
             </p>
           </div>
         </Modal>
