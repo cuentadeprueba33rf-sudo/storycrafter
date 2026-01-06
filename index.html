@@ -30,10 +30,6 @@
               sans: ['Inter', 'system-ui', 'sans-serif'],
               serif: ['Playfair Display', 'Merriweather', 'serif'],
               mono: ['JetBrains Mono', 'monospace'],
-            },
-            boxShadow: {
-              'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
             }
           }
         }
@@ -41,19 +37,39 @@
     </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap');
+      
       ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #d4d4d8; }
+      ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
       .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+      
       body { font-feature-settings: "ss01", "cv01"; }
       #root { min-height: 100vh; }
+
+      [contenteditable]:empty:before {
+        content: attr(data-placeholder);
+        color: #d4d4d8;
+        cursor: text;
+      }
+      .dark [contenteditable]:empty:before {
+        color: #3f3f46;
+      }
+
+      /* Estilos para el contenido enriquecido */
+      [contenteditable] b, [contenteditable] strong { font-weight: 700; }
+      [contenteditable] i, [contenteditable] em { font-style: italic; }
+      [contenteditable] u { text-decoration: underline; }
+      [contenteditable] p { margin-bottom: 1rem; }
+      
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
   <script type="importmap">
 {
   "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
   }
 }

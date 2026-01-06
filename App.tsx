@@ -13,17 +13,13 @@ function App() {
   const [view, setView] = useState<ViewMode>('HOME');
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [editorDarkMode, setEditorDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loaded = loadData();
     setData(loaded);
     
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setDarkMode(true);
-    }
-
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
@@ -36,13 +32,14 @@ function App() {
     }
   }, [data, isLoading]);
 
+  // Manejo de clase dark: solo si estamos en el editor y el modo nocturno está activo
   useEffect(() => {
-    if (darkMode) {
+    if (view === 'EDITOR' && editorDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);
+  }, [view, editorDarkMode]);
 
   const handleCreateFolder = () => {
     const name = prompt("Nombre de la nueva carpeta:");
@@ -122,9 +119,9 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-white dark:bg-black text-ink-900 dark:text-white">
+      <div className="flex flex-col items-center justify-center h-screen bg-white text-ink-900">
         <div className="flex flex-col items-center animate-pulse">
-          <div className="mb-6 p-4 border border-ink-200 dark:border-ink-800 rounded-sm">
+          <div className="mb-6 p-4 border border-ink-200 rounded-sm">
             <Icons.Pen size={48} strokeWidth={1} />
           </div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
@@ -137,26 +134,26 @@ function App() {
   const activeStory = data.stories.find(s => s.id === activeStoryId);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-ink-50 dark:bg-black">
+    <div className="flex h-screen overflow-hidden bg-ink-50">
       {view !== 'HOME' && (
-        <aside className="hidden lg:flex w-14 flex-col items-center py-6 bg-white dark:bg-black border-r border-ink-200 dark:border-ink-800 z-30">
-          <div className="mb-8 p-2 text-ink-900 dark:text-white cursor-pointer hover:scale-110" onClick={() => setView('HOME')}>
+        <aside className="hidden lg:flex w-14 flex-col items-center py-6 bg-white border-r border-ink-200 z-30">
+          <div className="mb-8 p-2 text-ink-900 cursor-pointer hover:scale-110" onClick={() => setView('HOME')}>
             <Icons.Home size={20} />
           </div>
           <div className="flex-1 flex flex-col gap-6">
-             <button onClick={() => setView('LIBRARY')} className={`p-2 rounded-md ${view === 'LIBRARY' ? 'text-ink-900 dark:text-white bg-ink-100 dark:bg-ink-900' : 'text-ink-400'}`}>
+             <button onClick={() => setView('LIBRARY')} className={`p-2 rounded-md ${view === 'LIBRARY' ? 'text-ink-900 bg-ink-100' : 'text-ink-400'}`}>
                <Icons.Grid size={20} />
              </button>
-             <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-ink-400 hover:text-ink-900 dark:hover:text-white">
-               {darkMode ? <Icons.Sun size={20} /> : <Icons.Moon size={20} />}
-             </button>
+          </div>
+          <div className="mt-auto writing-vertical-lr text-[8px] font-mono uppercase tracking-widest text-ink-300 rotate-180 py-4">
+            SAM VERCE
           </div>
         </aside>
       )}
 
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         {view === 'HOME' && (
-          <Dashboard onEnterStudio={() => setView('LIBRARY')} darkMode={darkMode} onSetDarkMode={setDarkMode} />
+          <Dashboard onEnterStudio={() => setView('LIBRARY')} />
         )}
 
         {view === 'LIBRARY' && (
@@ -176,7 +173,14 @@ function App() {
         )}
 
         {view === 'EDITOR' && activeStory && (
-          <Editor story={activeStory} onSave={handleSaveStory} onClose={() => setView('LIBRARY')} onShare={() => handleShareStory(activeStory.id)} />
+          <Editor 
+            story={activeStory} 
+            onSave={handleSaveStory} 
+            onClose={() => setView('LIBRARY')} 
+            onShare={() => handleShareStory(activeStory.id)} 
+            darkMode={editorDarkMode}
+            onToggleDarkMode={() => setEditorDarkMode(!editorDarkMode)}
+          />
         )}
       </div>
     </div>

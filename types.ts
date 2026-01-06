@@ -1,3 +1,4 @@
+
 export enum Genre {
   Comedy = 'Comedia',
   Thriller = 'Thriller',
@@ -23,7 +24,7 @@ export enum StoryStatus {
 export interface Page {
   id: string;
   title: string;
-  content: string;
+  content: string; // Ahora almacenará HTML
   order: number;
 }
 
@@ -33,7 +34,7 @@ export interface Story {
   synopsis: string;
   genres: Genre[];
   status: StoryStatus;
-  folderId: string | null; // null means root
+  folderId: string | null;
   createdAt: number;
   updatedAt: number;
   pages: Page[];

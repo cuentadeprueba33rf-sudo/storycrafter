@@ -33,8 +33,10 @@ export const generateId = (prefix: string): string => {
 };
 
 export const countWords = (text: string): number => {
-  if (!text || !text.trim()) return 0;
-  return text.trim().split(/\s+/).length;
+  // Eliminar etiquetas HTML para contar solo texto real
+  const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!cleanText) return 0;
+  return cleanText.split(/\s+/).length;
 };
 
 export const formatDate = (timestamp: number): string => {
