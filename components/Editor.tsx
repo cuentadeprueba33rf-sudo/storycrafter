@@ -69,7 +69,6 @@ export const Editor: React.FC<EditorProps> = ({
   
   const activePage = story.pages.find(p => p.id === activePageId);
 
-  // Keyboard Sound effect
   useEffect(() => {
     const handleKeyDown = () => {
       if (story.typewriterEnabled && typewriterAudioRef.current) {
@@ -82,7 +81,6 @@ export const Editor: React.FC<EditorProps> = ({
     return () => editor?.removeEventListener('keydown', handleKeyDown);
   }, [story.typewriterEnabled]);
 
-  // Sprint Timer
   useEffect(() => {
     let interval: any;
     if (isSprintActive && sprintTime > 0) {
@@ -108,14 +106,11 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
-  // AUTOSAVE LOGIC (2 seconds of inactivity)
   useEffect(() => {
     if (!isDirty) return;
-    
     const timer = setTimeout(() => {
       handleManualSave();
     }, 2000);
-    
     return () => clearTimeout(timer);
   }, [story, isDirty]);
 
@@ -136,6 +131,15 @@ export const Editor: React.FC<EditorProps> = ({
     onSave(story);
     setIsDirty(false);
     setTimeout(() => setIsSaving(false), 800);
+  };
+
+  const handleTogglePublish = () => {
+    const nextStatus = !story.isPublished;
+    if (nextStatus) {
+      if (!confirm("¿Publicar esta historia en el Feed de la comunidad? Otros autores podrán leerla.")) return;
+    }
+    setStory(prev => ({ ...prev, isPublished: nextStatus }));
+    setIsDirty(true);
   };
 
   const handleCreatePage = () => {
@@ -262,7 +266,6 @@ export const Editor: React.FC<EditorProps> = ({
       <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
       <input type="file" ref={charPortraitInputRef} className="hidden" accept="image/*" onChange={handlePortraitUpload} />
 
-      {/* Side Overlay for Mobile Click-to-Close */}
       {showInspector && (
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110] lg:hidden animate-in fade-in duration-300"
@@ -340,7 +343,6 @@ export const Editor: React.FC<EditorProps> = ({
             </div>
           </div>
 
-          {/* GESTOR DE CAPÍTULOS ELEVADO PARA EVITAR OCULTAMIENTO */}
           {!zenMode && (
             <div className="shrink-0 border-t border-black/5 px-4 pt-4 pb-12 md:pb-8 flex items-center justify-center bg-inherit/90 backdrop-blur-md z-50">
               <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-2">
@@ -375,15 +377,8 @@ export const Editor: React.FC<EditorProps> = ({
           <div className="flex flex-col h-full w-full overflow-hidden">
             <div className="p-6 border-b border-black/5">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Módulo de Inspiración</h2>
-                <button 
-                  onClick={() => setShowInspector(false)} 
-                  className="p-2.5 bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all group flex items-center gap-2"
-                  title="Cerrar Panel"
-                >
-                  <Icons.X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Cerrar</span>
-                </button>
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Herramientas</h2>
+                <button onClick={() => setShowInspector(false)} className="p-2.5 bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-xl transition-all"><Icons.X size={18} /></button>
               </div>
               <div className="grid grid-cols-5 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
                 {(['metas', 'biblia', 'casting', 'musica', 'sprint'] as InspectorTab[]).map(tab => (
@@ -410,6 +405,23 @@ export const Editor: React.FC<EditorProps> = ({
                     >
                       {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
+                  </div>
+
+                  {/* NUEVA SECCIÓN DE PUBLICACIÓN SOCIAL */}
+                  <div className="p-6 bg-black/5 dark:bg-white/5 rounded-[2rem] border border-black/5 space-y-4">
+                    <div className="flex items-center gap-3">
+                       <Icons.Globe size={16} className={story.isPublished ? 'text-amber-500' : 'text-ink-400'} />
+                       <h4 className="text-[10px] font-black uppercase tracking-widest">Publicación Social</h4>
+                    </div>
+                    <p className="text-[9px] font-serif italic opacity-60 leading-relaxed">
+                      Al publicar, tu obra aparecerá en el feed global para que otros autores la lean en tiempo real.
+                    </p>
+                    <button 
+                      onClick={handleTogglePublish}
+                      className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${story.isPublished ? 'bg-amber-500 text-white shadow-lg' : 'bg-ink-200 dark:bg-ink-800 text-ink-500'}`}
+                    >
+                      {story.isPublished ? 'Publicado ✓' : 'Publicar en la Nube'}
+                    </button>
                   </div>
 
                   <div className="space-y-4">
@@ -475,7 +487,7 @@ export const Editor: React.FC<EditorProps> = ({
                           </button>
                           <input 
                             className="flex-1 bg-transparent border-none focus:ring-0 text-[10px] font-black uppercase tracking-widest"
-                            placeholder="Nombre del personaje..."
+                            placeholder="Nombre..."
                             value={newCharName}
                             onChange={(e) => setNewCharName(e.target.value)}
                           />
@@ -483,21 +495,19 @@ export const Editor: React.FC<EditorProps> = ({
                         <button 
                           onClick={handleAddCharacter}
                           disabled={!newCharName.trim()}
-                          className="w-full py-3 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg disabled:opacity-20 transition-all"
+                          className="w-full py-3 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl text-[9px] font-black uppercase tracking-widest"
                         >
-                          Añadir al Reparto
+                          Añadir
                         </button>
                       </div>
                    </div>
                    
                    <div className="space-y-3 pt-6 border-t border-black/5">
-                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Elenco Actual</label>
                      {story.characters?.map(char => (
-                        <div key={char.id} className="group relative flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 rounded-2xl hover:bg-black/10 transition-colors">
-                          <img src={char.image} className="w-14 h-14 rounded-2xl object-cover shadow-sm ring-1 ring-black/5" />
+                        <div key={char.id} className="group relative flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 rounded-2xl">
+                          <img src={char.image} className="w-14 h-14 rounded-2xl object-cover" />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[10px] font-black uppercase tracking-widest truncate">{char.name}</span>
-                            <span className="text-[8px] font-serif italic opacity-40">Protagonista</span>
                           </div>
                           <button 
                             onClick={() => handleRemoveCharacter(char.id)}
@@ -508,42 +518,24 @@ export const Editor: React.FC<EditorProps> = ({
                         </div>
                      ))}
                    </div>
-                   
-                   {(!story.characters || story.characters.length === 0) && (
-                     <div className="py-12 border-2 border-dashed border-black/5 rounded-[2rem] text-center text-[10px] font-serif italic opacity-40">Tu historia aún no tiene rostros...</div>
-                   )}
                 </div>
               )}
 
               {activeTab === 'sprint' && (
                 <div className="space-y-10 animate-in fade-in duration-500">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Timer size={14} /> Sprint de Escritura</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Timer size={14} /> Sprint</label>
                     <div className="grid grid-cols-3 gap-2">
                        {[15, 25, 45].map(m => (
                          <button key={m} onClick={() => startSprint(m)} disabled={isSprintActive} className="py-3 px-2 bg-black/5 dark:bg-white/5 rounded-xl text-[10px] font-bold hover:bg-amber-500 hover:text-white transition-all disabled:opacity-20">{m} Min</button>
                        ))}
                     </div>
-                    {isSprintActive && (
-                      <button onClick={() => setIsSprintActive(false)} className="w-full py-3 bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest">Detener Foco</button>
-                    )}
                   </div>
 
                   <div className="space-y-4 pt-8 border-t border-black/5">
-                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Keyboard size={14} /> Experiencia Mecánica</label>
-                    <button 
-                      onClick={toggleTypewriter}
-                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${story.typewriterEnabled ? 'border-amber-500 bg-amber-500/5 text-amber-600' : 'border-black/5 bg-black/5 opacity-40'}`}
-                    >
-                       <span className="text-[10px] font-black uppercase tracking-widest">Máquina de Escribir</span>
-                       {story.typewriterEnabled ? <Icons.Volume size={14} /> : <Icons.NoAI size={14} />}
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 pt-8 border-t border-black/5">
-                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Magic size={14} /> Oráculo Creativo</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Magic size={14} /> Oráculo</label>
                     <div className="p-6 bg-ink-900 dark:bg-white rounded-[2rem] text-center space-y-4 shadow-xl">
-                      {oracleMessage ? <p className="text-[11px] font-serif italic text-white dark:text-black leading-relaxed animate-in zoom-in-95">"{oracleMessage}"</p> : <p className="text-[9px] font-black uppercase tracking-widest text-white/40 dark:text-black/40">¿Sin ideas?</p>}
+                      {oracleMessage ? <p className="text-[11px] font-serif italic text-white dark:text-black">"{oracleMessage}"</p> : <p className="text-[9px] font-black uppercase tracking-widest text-white/40 dark:text-black/40">Inspiración...</p>}
                       <button onClick={getOracleAdvice} className="px-6 py-2 bg-white dark:bg-black text-black dark:text-white rounded-full text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform">Robar Carta</button>
                     </div>
                   </div>
@@ -553,7 +545,7 @@ export const Editor: React.FC<EditorProps> = ({
               {activeTab === 'musica' && (
                 <div className="space-y-8 animate-in fade-in duration-500">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Disc size={14} /> Atmósfera Local</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Disc size={14} /> Atmósfera</label>
                     {!story.soundtrackData ? (
                       <button onClick={() => audioInputRef.current?.click()} className="w-full flex items-center justify-center gap-3 px-6 py-12 border-2 border-dashed border-black/10 rounded-[2.5rem] opacity-40 hover:opacity-60 transition-opacity flex-col">
                         <Icons.Upload size={24} />
@@ -562,13 +554,10 @@ export const Editor: React.FC<EditorProps> = ({
                     ) : (
                       <div className="p-8 bg-ink-900 dark:bg-white rounded-[2.5rem] shadow-2xl text-center space-y-6">
                         <Icons.Music size={32} className="mx-auto text-white dark:text-black" />
-                        <div className="space-y-2">
-                           <p className="text-[9px] text-white/60 dark:text-black/60 font-mono truncate px-4">{story.soundtrackName}</p>
-                        </div>
                         <button onClick={togglePlay} className="w-16 h-16 bg-white dark:bg-black text-black dark:text-white rounded-full mx-auto flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
                            {isPlaying ? <Icons.Pause size={24} fill="currentColor" /> : <Icons.Play size={24} fill="currentColor" className="ml-1" />}
                         </button>
-                        <button onClick={() => setStory(prev => ({ ...prev, soundtrackData: undefined, soundtrackName: undefined }))} className="text-[8px] font-black uppercase tracking-widest text-red-500 opacity-60 hover:opacity-100">Eliminar Audio</button>
+                        <button onClick={() => setStory(prev => ({ ...prev, soundtrackData: undefined }))} className="text-[8px] font-black uppercase tracking-widest text-red-500 opacity-60">Eliminar</button>
                       </div>
                     )}
                   </div>

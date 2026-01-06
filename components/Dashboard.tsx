@@ -6,7 +6,7 @@ import { formatSize, generateId } from '../utils/storage';
 
 interface DashboardProps {
   onEnterStudio: () => void;
-  onEnterCharacters: () => void;
+  onEnterExplore: () => void;
   cloudImages: CloudImage[];
   onUpdateCloud: (images: CloudImage[]) => void;
 }
@@ -15,14 +15,14 @@ type ModalType = 'docs' | 'usage' | 'updates' | 'no-ai' | 'credits' | 'cloud' | 
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   onEnterStudio, 
-  onEnterCharacters,
+  onEnterExplore,
   cloudImages,
   onUpdateCloud
 }) => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const maxSlots = 9; // Límite estricto de 9 fotos
+  const maxSlots = 9; 
   const currentCount = cloudImages.length;
   const storagePercentage = (currentCount / maxSlots) * 100;
 
@@ -77,6 +77,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       primary: true
     },
     {
+      id: 'explore',
+      title: 'Explorar',
+      description: 'Comunidad Real-time',
+      icon: <Icons.Globe size={14} />,
+      action: onEnterExplore,
+      primary: true
+    },
+    {
       id: 'cloud',
       title: 'La Nube',
       description: 'Bóveda Visual',
@@ -86,32 +94,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       extra: `${currentCount} / 9 Fotos`
     },
     {
-      id: 'atmosphere',
-      title: 'Atmósfera',
-      description: 'Audio Local',
-      icon: <Icons.Music size={14} />,
-      action: () => alert("Sube tus archivos .MP3 directamente en el menú 'Inspiración' de cada historia."),
-      primary: false
-    },
-    {
       id: 'no-ai',
       title: 'Human-First',
-      description: 'Sin Algoritmos',
+      description: '100% Auténtico',
       icon: <Icons.NoAI size={14} />,
       action: () => setActiveModal('no-ai')
     },
     {
       id: 'credits',
       title: 'Créditos',
-      description: 'Creadores',
+      description: 'Mentes Creativas',
       icon: <Icons.Book size={14} />,
       action: () => setActiveModal('credits')
     },
     {
       id: 'updates',
-      title: 'v2.0.0',
-      description: 'Audio Offline',
-      icon: <Icons.Alert size={14} />,
+      title: 'v3.0.0',
+      description: 'Modo Social',
+      icon: <Icons.Zap size={14} />,
       notify: true,
       action: () => setActiveModal('updates')
     }
@@ -143,7 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <header className="mb-16 animate-in fade-in slide-in-from-top-4 duration-1000">
           <div className="flex items-center gap-6 mb-8">
             <div className="h-[1px] w-12 bg-ink-900 dark:bg-white"></div>
-            <span className="text-[8px] font-black uppercase tracking-[0.8em] text-ink-400">Atelier Literario</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.8em] text-ink-400">Atelier Literario Global</span>
           </div>
           <h1 className="text-7xl md:text-9xl font-serif font-light tracking-tighter text-ink-900 dark:text-white leading-none">
             Story<span className="opacity-30">Craft</span>
@@ -152,35 +152,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="mb-20 animate-in fade-in slide-in-from-left duration-1000 delay-100">
           <p className="text-lg md:text-xl font-serif leading-relaxed text-ink-800 dark:text-ink-300 max-w-2xl">
-            Atmósfera sonora 100% offline. 
+            Ahora en tiempo real con Supabase. 
             <span className="block mt-6 text-ink-400 font-sans text-[9px] uppercase tracking-[0.4em] font-black opacity-40">
-              Audio Local • Sin Errores de API • 9 Retratos
+              Publica • Lee • Inspira • Sin IA
             </span>
           </p>
         </div>
 
         <div className="mb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {sections.map((sec) => (
               <button 
                 key={sec.id}
                 onClick={sec.action}
                 className={`
-                  group relative px-4 py-3 text-left transition-all duration-700 rounded-xl border flex items-center gap-4
+                  group relative px-4 py-5 text-left transition-all duration-700 rounded-2xl border flex items-center gap-4
                   ${sec.primary 
-                    ? 'bg-ink-950 dark:bg-white text-white dark:text-black border-transparent shadow-md hover:shadow-xl hover:scale-[1.02]' 
+                    ? 'bg-ink-950 dark:bg-white text-white dark:text-black border-transparent shadow-xl hover:scale-[1.02]' 
                     : 'bg-white/40 dark:bg-ink-900/10 border-black/[0.04] dark:border-white/[0.04] hover:bg-white dark:hover:bg-ink-900/30 hover:border-black/10 dark:hover:border-white/10'}
                 `}
               >
-                <div className={`shrink-0 p-1.5 rounded-lg border ${sec.primary ? 'border-white/10 dark:border-black/5' : 'border-black/5 dark:border-white/5 opacity-40'}`}>
+                <div className={`shrink-0 p-2 rounded-xl border ${sec.primary ? 'border-white/10 dark:border-black/5' : 'border-black/5 dark:border-white/5 opacity-40'}`}>
                   {sec.icon}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[10px] font-black mb-0 tracking-widest uppercase truncate">
+                  <h3 className="text-[11px] font-black mb-0 tracking-widest uppercase truncate">
                     {sec.title}
                   </h3>
-                  <p className={`text-[8px] font-serif italic opacity-40 truncate`}>
+                  <p className={`text-[9px] font-serif italic opacity-40 truncate`}>
                     {sec.extra || sec.description}
                   </p>
                 </div>
@@ -192,14 +192,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="mt-auto pt-16 border-t border-black/5 dark:border-white/5">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
             <div className="flex-1 space-y-6">
-              <h3 className="text-[8px] font-black uppercase tracking-[0.5em] text-ink-300">Arquitectura Offline</h3>
+              <h3 className="text-[8px] font-black uppercase tracking-[0.5em] text-ink-300">Conectividad Supabase</h3>
               <div className="flex flex-wrap gap-x-12 gap-y-6">
                 <div className="group">
                   <h4 className="text-[9px] font-black uppercase tracking-widest text-ink-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Icons.Check size={10} className="text-green-500" /> Bóveda de Sonido
+                    <Icons.Globe size={10} className="text-amber-500" /> Historias Públicas
                   </h4>
                   <p className="text-[9px] text-ink-400 font-serif leading-relaxed italic max-w-[180px]">
-                    Sube archivos .MP3 para una inspiración sin cortes ni errores de YouTube.
+                    Comparte tu arte con el mundo en tiempo real. Tu seudónimo es tu única huella.
                   </p>
                 </div>
               </div>
@@ -263,15 +263,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {activeModal === 'updates' && (
-        <Modal title="Novedades v2.0.0" onClose={() => setActiveModal(null)}>
+        <Modal title="Novedades v3.0.0" onClose={() => setActiveModal(null)}>
            <div className="space-y-6 py-4">
             <div className="flex gap-4">
               <div className="h-2 w-2 bg-amber-500 rounded-full mt-1.5 shrink-0"></div>
-              <p><strong className="uppercase tracking-widest text-[10px]">Adiós Errores de YouTube</strong>: Ahora puedes subir tus propios archivos de audio directamente al Atelier. Sin anuncios, sin bloqueos, 100% privado.</p>
+              <p><strong className="uppercase tracking-widest text-[10px]">Supabase Real-time</strong>: Ahora puedes publicar tus historias para que otros las lean. Tu seudónimo se genera automáticamente para tu tranquilidad.</p>
             </div>
             <div className="flex gap-4">
               <div className="h-2 w-2 bg-ink-900 dark:bg-white rounded-full mt-1.5 shrink-0"></div>
-              <p><strong className="uppercase tracking-widest text-[10px]">Optimización Offline</strong>: Tu ambiente sonoro está disponible incluso sin conexión a internet.</p>
+              <p><strong className="uppercase tracking-widest text-[10px]">Feed Comunitario</strong>: Explora lo que otros están escribiendo en tiempo real. Inspiración mutua sin algoritmos intrusivos.</p>
             </div>
           </div>
         </Modal>

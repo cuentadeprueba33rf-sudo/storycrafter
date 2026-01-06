@@ -59,8 +59,10 @@ export interface Story {
   soundtrackUrl?: string;
   soundtrackData?: string;
   soundtrackName?: string;
-  typewriterEnabled?: boolean; // Nuevo: Sonido de teclas
-  sprintMinutes?: number; // Nuevo: Duración del sprint actual
+  typewriterEnabled?: boolean;
+  sprintMinutes?: number;
+  isPublished?: boolean; // Nuevo: Estado de publicación
+  authorName?: string; // Nuevo: Nombre del autor para el feed
 }
 
 export interface Folder {
@@ -70,7 +72,7 @@ export interface Folder {
   createdAt: number;
 }
 
-export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR' | 'CHARACTERS';
+export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR' | 'CHARACTERS' | 'FEED'; // Añadido FEED
 
 export type LibraryViewMode = 'LIST' | 'GRID';
 

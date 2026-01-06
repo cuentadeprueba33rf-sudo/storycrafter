@@ -51,7 +51,12 @@ import {
   Timer,
   Keyboard,
   Zap,
-  RotateCcw
+  RotateCcw,
+  Globe,
+  Eye,
+  Heart,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -119,5 +124,10 @@ export const Icons = {
   Timer,
   Keyboard,
   Zap,
-  Reset: RotateCcw
+  Reset: RotateCcw,
+  Globe,
+  Eye,
+  Heart,
+  Comment: MessageSquare,
+  Publish: Send
 };
