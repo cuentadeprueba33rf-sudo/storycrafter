@@ -25,14 +25,16 @@ export const Editor: React.FC<EditorProps> = ({
   const [story, setStory] = useState<Story>(initialStory);
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
   const [showMeta, setShowMeta] = useState(false);
-  const [showChapters, setShowChapters] = useState(false); // Para móvil
+  const [showChapters, setShowChapters] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false); // Seguimiento de cambios sin guardar
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string>(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   
   const editorRef = useRef<HTMLDivElement>(null);
   const activePage = story.pages.find(p => p.id === activePageId);
 
+  // Sincronizar contenido cuando cambia la página activa
   useEffect(() => {
     if (editorRef.current && activePage) {
       if (editorRef.current.innerHTML !== activePage.content) {
@@ -41,14 +43,32 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
+  // Manejador para prevenir el refresco o cierre de pestaña
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Requerido por la mayoría de navegadores para mostrar el prompt
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
   // Auto-guardado cada 15 segundos si hay cambios
   useEffect(() => {
+    if (!isDirty) return;
+
     const timer = setTimeout(() => {
       onSave(story);
+      setIsDirty(false);
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 15000);
+    
     return () => clearTimeout(timer);
-  }, [story, onSave]);
+  }, [story, onSave, isDirty]);
 
   const execCommand = (command: string, value: string = '') => {
     document.execCommand(command, false, value);
@@ -58,6 +78,7 @@ export const Editor: React.FC<EditorProps> = ({
   const handleInput = () => {
     if (editorRef.current) {
       const content = editorRef.current.innerHTML;
+      setIsDirty(true);
       setStory(prev => ({
         ...prev,
         updatedAt: Date.now(),
@@ -71,6 +92,7 @@ export const Editor: React.FC<EditorProps> = ({
     onSave(story);
     setTimeout(() => {
       setIsSaving(false);
+      setIsDirty(false);
       setSaveMessage("Sincronizado");
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       setTimeout(() => setSaveMessage(null), 2000);
@@ -84,6 +106,7 @@ export const Editor: React.FC<EditorProps> = ({
       content: '<p><br></p>',
       order: story.pages.length
     };
+    setIsDirty(true);
     setStory(prev => ({
       ...prev,
       pages: [...prev.pages, newPage]
@@ -99,6 +122,7 @@ export const Editor: React.FC<EditorProps> = ({
     }
     if (!window.confirm("¿Eliminar sección permanentemente?")) return;
     
+    setIsDirty(true);
     const newPages = story.pages.filter(p => p.id !== id);
     setStory(prev => ({ ...prev, pages: newPages }));
     if (activePageId === id) {
@@ -112,16 +136,28 @@ export const Editor: React.FC<EditorProps> = ({
     if (targetIndex < 0 || targetIndex >= newPages.length) return;
     
     [newPages[index], newPages[targetIndex]] = [newPages[targetIndex], newPages[index]];
+    setIsDirty(true);
     setStory(prev => ({ ...prev, pages: newPages }));
   };
 
   const toggleGenre = (genre: Genre) => {
+    setIsDirty(true);
     setStory(prev => {
       const genres = prev.genres.includes(genre)
         ? prev.genres.filter(g => g !== genre)
         : [...prev.genres, genre];
       return { ...prev, genres };
     });
+  };
+
+  const handleSafeClose = () => {
+    if (isDirty) {
+      if (window.confirm("Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?")) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
   };
 
   const currentWordCount = activePage ? countWords(editorRef.current?.innerText || '') : 0;
@@ -139,7 +175,7 @@ export const Editor: React.FC<EditorProps> = ({
 
       <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 border-b border-ink-200 dark:border-ink-800 bg-white dark:bg-black z-30 shadow-sm">
         <div className="flex items-center gap-1.5 md:gap-4">
-          <button onClick={onClose} className="p-2 -ml-1 text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-900 rounded-full transition-colors">
+          <button onClick={handleSafeClose} className="p-2 -ml-1 text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-900 rounded-full transition-colors">
             <Icons.Back size={18} />
           </button>
           
@@ -154,7 +190,10 @@ export const Editor: React.FC<EditorProps> = ({
             <input 
               className="font-serif font-bold text-sm md:text-base bg-transparent outline-none text-ink-900 dark:text-white border-none p-0 focus:ring-0 w-auto min-w-[80px] max-w-[150px] md:max-w-xs"
               value={story.title}
-              onChange={(e) => setStory(prev => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => {
+                setIsDirty(true);
+                setStory(prev => ({ ...prev, title: e.target.value }));
+              }}
               placeholder="Título..."
             />
           </div>
@@ -180,19 +219,23 @@ export const Editor: React.FC<EditorProps> = ({
           <button 
             onClick={handleManualSave} 
             disabled={isSaving} 
-            className="px-3 md:px-5 py-1.5 md:py-2 bg-ink-900 dark:bg-white text-white dark:text-black text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-md"
+            className={`px-3 md:px-5 py-1.5 md:py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-md ${
+              isDirty 
+              ? 'bg-ink-900 dark:bg-white text-white dark:text-black' 
+              : 'bg-ink-100 dark:bg-ink-800 text-ink-400 dark:text-ink-500'
+            }`}
           >
             {isSaving ? (
               <div className="w-3 h-3 border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black rounded-full animate-spin"></div>
             ) : (
               <Icons.Save size={14} />
             )}
-            <span className="hidden min-[450px]:inline">{isSaving ? "Guardando" : "Guardar"}</span>
+            <span className="hidden min-[450px]:inline">{isSaving ? "Guardando" : (isDirty ? "Guardar" : "Guardado")}</span>
           </button>
         </div>
       </header>
 
-      {/* Toolbar Editorial - Scrollable Horizontal */}
+      {/* Toolbar Editorial */}
       <div className="flex items-center justify-start md:justify-center gap-0.5 md:gap-1 px-4 py-1.5 bg-ink-50 dark:bg-ink-950 border-b border-ink-200 dark:border-ink-800 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-0.5 pr-4 border-r border-ink-200 dark:border-ink-800 md:border-none md:pr-0">
           <button onClick={() => execCommand('bold')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><b>B</b></button>
@@ -280,7 +323,10 @@ export const Editor: React.FC<EditorProps> = ({
             <input 
               className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold bg-transparent outline-none mb-8 md:mb-12 text-ink-900 dark:text-white tracking-tight border-none focus:ring-0 p-0 placeholder-ink-100 dark:placeholder-ink-900"
               value={activePage?.title || ''}
-              onChange={(e) => setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
+              onChange={(e) => {
+                setIsDirty(true);
+                setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }));
+              }}
               placeholder="Capítulo..."
             />
             <div
@@ -306,7 +352,7 @@ export const Editor: React.FC<EditorProps> = ({
                 <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Estado</label>
                 <div className="space-y-1.5">
                   {ALL_STATUSES.map(status => (
-                    <button key={status} onClick={() => setStory(prev => ({ ...prev, status }))} className={`w-full px-4 py-2.5 text-xs text-left rounded-xl border transition-all flex items-center justify-between ${story.status === status ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-white dark:bg-ink-900 border-ink-200 dark:border-ink-800'}`}>
+                    <button key={status} onClick={() => { setIsDirty(true); setStory(prev => ({ ...prev, status })); }} className={`w-full px-4 py-2.5 text-xs text-left rounded-xl border transition-all flex items-center justify-between ${story.status === status ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-white dark:bg-ink-900 border-ink-200 dark:border-ink-800'}`}>
                       {status} {story.status === status && <Icons.Check size={10} />}
                     </button>
                   ))}
@@ -314,7 +360,29 @@ export const Editor: React.FC<EditorProps> = ({
               </section>
               <section>
                 <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Sinopsis</label>
-                <textarea className="w-full h-32 p-4 text-xs font-serif leading-relaxed bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-2xl outline-none resize-none" value={story.synopsis} onChange={(e) => setStory(prev => ({ ...prev, synopsis: e.target.value }))} placeholder="Resumen..." />
+                <textarea 
+                  className="w-full h-32 p-4 text-xs font-serif leading-relaxed bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-2xl outline-none resize-none" 
+                  value={story.synopsis} 
+                  onChange={(e) => {
+                    setIsDirty(true);
+                    setStory(prev => ({ ...prev, synopsis: e.target.value }));
+                  }} 
+                  placeholder="Resumen..." 
+                />
+              </section>
+              <section>
+                <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Géneros</label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_GENRES.map(genre => (
+                    <button 
+                      key={genre}
+                      onClick={() => toggleGenre(genre)}
+                      className={`px-2.5 py-1.5 text-[9px] rounded-lg border transition-all ${story.genres.includes(genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-white dark:bg-ink-900 border-ink-200 dark:border-ink-800'}`}
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
               </section>
             </div>
           </aside>
@@ -325,6 +393,7 @@ export const Editor: React.FC<EditorProps> = ({
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1"><Icons.Pen size={10} /> {currentWordCount} PALABRAS</span>
           <span className="hidden sm:inline opacity-60">SINC: {lastSaved}</span>
+          {isDirty && <span className="text-amber-500 font-bold animate-pulse">● CAMBIOS SIN GUARDAR</span>}
         </div>
         <div className="flex items-center gap-2">
            <span className="opacity-40 uppercase tracking-tighter hidden xs:inline">Cifrado Local</span>
