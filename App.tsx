@@ -62,7 +62,6 @@ function App() {
   }, [view, editorTheme]);
 
   const getDisplayName = () => {
-    // Prioridad absoluta al nombre de pluma guardado en el registro
     return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Escritor";
   };
 
@@ -100,7 +99,6 @@ function App() {
        return; 
     }
 
-    // Actualizamos localmente el autor por si acaso cambió
     const finalStory = { ...updatedStory, authorName: getDisplayName() };
 
     setData(prev => ({
@@ -114,7 +112,7 @@ function App() {
           id: finalStory.id,
           title: finalStory.title,
           synopsis: finalStory.synopsis,
-          author_name: getDisplayName(), // Enviar el nombre real de registro a la DB pública
+          author_name: getDisplayName(),
           genres: finalStory.genres,
           status: finalStory.status,
           content_json: finalStory.pages,
@@ -189,7 +187,7 @@ function App() {
             onDeleteFolder={(id) => setData(prev => ({ ...prev, folders: prev.folders.filter(f => f.id !== id) }))}
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
             onShareStory={(id) => alert("Enlace copiado")}
-            onOpenFeed={() => setView('FEED')}
+            onBackHome={() => setView('HOME')}
           />
         )}
         {view === 'FEED' && (
@@ -214,6 +212,7 @@ function App() {
             onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
+            readOnly={!!communityStory} // Si viene del feed, es solo lectura
           />
         )}
       </div>

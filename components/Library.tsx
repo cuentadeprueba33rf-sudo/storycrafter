@@ -16,6 +16,7 @@ interface LibraryProps {
   onDeleteFolder: (folderId: string) => void;
   onMoveStory: (storyId: string, targetFolderId: string | null) => void;
   onShareStory: (storyId: string) => void;
+  onBackHome: () => void;
 }
 
 const StatusBadge: React.FC<{ status: StoryStatus }> = ({ status }) => {
@@ -43,7 +44,8 @@ export const Library: React.FC<LibraryProps> = ({
   onDeleteStory,
   onDeleteFolder,
   onMoveStory,
-  onShareStory
+  onShareStory,
+  onBackHome
 }) => {
   const [viewMode, setViewMode] = useState<LibraryViewMode>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,21 +71,32 @@ export const Library: React.FC<LibraryProps> = ({
       <div className="px-6 md:px-12 py-8 bg-white dark:bg-black border-b border-ink-200 dark:border-ink-800 sticky top-0 z-20 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center gap-4">
+            <button 
+              onClick={onBackHome} 
+              className="p-2.5 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl hover:scale-110 transition-all shadow-lg group relative"
+              title="Volver al Inicio"
+            >
+              <Icons.Home size={18} />
+              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[8px] font-black uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Inicio</div>
+            </button>
+
              {currentFolderId && (
               <button 
                 onClick={() => onNavigateFolder(currentFolder?.parentId || null)} 
-                className="p-2 bg-ink-100 dark:bg-ink-900 text-ink-600 dark:text-ink-400 rounded-xl hover:scale-105 transition-transform"
+                className="p-2.5 bg-ink-100 dark:bg-ink-900 text-ink-600 dark:text-ink-400 rounded-xl hover:scale-110 transition-transform border border-black/5"
+                title="Subir Nivel"
               >
                 <Icons.UpLevel size={18} />
               </button>
             )}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-serif font-bold text-ink-900 dark:text-white tracking-tight">
+            
+            <div className="ml-2">
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-ink-900 dark:text-white tracking-tight leading-none">
                 {currentFolder ? currentFolder.name : 'Mi Biblioteca'}
               </h1>
-              <div className="flex items-center gap-3 mt-1.5">
+              <div className="flex items-center gap-3 mt-2">
                 <p className="text-[10px] text-ink-400 font-mono uppercase tracking-[0.2em]">{filteredStories.length} Manuscritos</p>
-                <div className="w-1 h-1 bg-ink-200 dark:bg-ink-800 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
                 <p className="text-[10px] text-ink-400 font-mono uppercase tracking-[0.2em]">{filteredFolders.length} Carpetas</p>
               </div>
             </div>
@@ -97,7 +110,7 @@ export const Library: React.FC<LibraryProps> = ({
                  placeholder="Buscar obra..." 
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full md:w-64 pl-9 pr-4 py-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-ink-900 dark:focus:ring-white transition-all"
+                 className="w-full md:w-64 pl-9 pr-4 py-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500 transition-all"
                />
              </div>
              <button 
@@ -156,7 +169,6 @@ export const Library: React.FC<LibraryProps> = ({
                     onClick={() => onOpenStory(story.id)} 
                     className="group relative p-8 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-[2.5rem] flex flex-col justify-between h-72 hover:-translate-y-1 hover:shadow-2xl hover:border-ink-900 dark:hover:border-white transition-all duration-500 overflow-hidden"
                   >
-                    {/* Decorative Paper Effect */}
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-ink-50 dark:bg-black rounded-full opacity-50 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                     
                     <div className="relative z-10">
@@ -174,7 +186,6 @@ export const Library: React.FC<LibraryProps> = ({
                         {story.genres.slice(0, 2).map(g => (
                           <span key={g} className="text-[8px] font-mono text-ink-400 uppercase tracking-widest">{g}</span>
                         ))}
-                        {story.genres.length > 2 && <span className="text-[8px] font-mono text-ink-300 uppercase tracking-widest">+{story.genres.length - 2}</span>}
                       </div>
                     </div>
 
@@ -206,7 +217,6 @@ export const Library: React.FC<LibraryProps> = ({
                         <div className="flex items-center gap-3 mt-1 overflow-hidden">
                           <StatusBadge status={story.status} />
                           <span className="text-[10px] font-mono text-ink-400 uppercase tracking-widest whitespace-nowrap">{formatDate(story.updatedAt)}</span>
-                          <span className="hidden xs:inline text-[10px] font-mono text-ink-300 uppercase tracking-widest whitespace-nowrap">• {words} palabras</span>
                         </div>
                       </div>
                     </div>
@@ -229,7 +239,6 @@ export const Library: React.FC<LibraryProps> = ({
           title="Nueva Carpeta"
         >
           <Icons.FolderPlus size={22} />
-          <div className="absolute right-full mr-4 px-3 py-1 bg-ink-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Nueva Carpeta</div>
         </button>
         <button 
           onClick={onCreateStory} 
@@ -237,7 +246,6 @@ export const Library: React.FC<LibraryProps> = ({
           title="Nuevo Manuscrito"
         >
           <Icons.Plus size={28} />
-          <div className="absolute right-full mr-4 px-3 py-1 bg-ink-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Escribir Historia</div>
         </button>
       </div>
     </div>

@@ -37,6 +37,27 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdm
     }
   };
 
+  const deleteStory = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (!confirm("¿Seguro que deseas eliminar esta historia pública? Esta acción no se puede deshacer.")) return;
+
+    try {
+      const { error } = await supabase
+        .from('public_stories')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert("Error al eliminar: " + error.message);
+      } else {
+        setStories(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchStories();
     const channel = supabase
@@ -122,12 +143,11 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdm
                      createdAt: new Date(story.updated_at).getTime()
                    });
                 }}
-                className={`group relative bg-white dark:bg-zinc-900/40 rounded-[1.5rem] md:rounded-[2.5rem] border transition-all duration-500 overflow-hidden hover:shadow-xl flex flex-col ${story.is_admin ? 'border-amber-500/20' : 'border-black/5 dark:border-white/5'}`}
+                className={`group relative bg-white dark:bg-zinc-900/40 rounded-[1.5rem] md:rounded-[2.5rem] border transition-all duration-500 overflow-hidden hover:shadow-xl flex flex-col ${story.is_admin ? 'border-amber-500/20 shadow-amber-500/5' : 'border-black/5 dark:border-white/5'}`}
               >
-                {/* Cabecera del Autor - EL NOMBRE DE PLUMA ES EL PROTAGONISTA */}
+                {/* Cabecera del Autor */}
                 <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between border-b border-black/[0.03] dark:border-white/[0.03]">
                   <div className="flex items-center gap-3 md:gap-4">
-                    {/* Avatar con la inicial del Nombre de Pluma */}
                     <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-serif text-base md:text-lg font-black shadow-lg ${story.is_admin ? 'bg-gradient-to-br from-amber-400 to-amber-600' : 'bg-ink-900 dark:bg-zinc-700'}`}>
                       {(story.author_name || "E")[0].toUpperCase()}
                     </div>
@@ -141,8 +161,19 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdm
                       <span className="text-[8px] font-mono opacity-40 uppercase tracking-[0.2em] mt-1 block">Firma Verificada</span>
                     </div>
                   </div>
-                  <div className="opacity-20 hover:opacity-100 transition-opacity">
-                    <Icons.More size={18} />
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <button 
+                        onClick={(e) => deleteStory(e, story.id)}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Eliminar Publicación (Admin)"
+                      >
+                        <Icons.Delete size={18} />
+                      </button>
+                    )}
+                    <div className="opacity-20">
+                      <Icons.More size={18} />
+                    </div>
                   </div>
                 </div>
 
