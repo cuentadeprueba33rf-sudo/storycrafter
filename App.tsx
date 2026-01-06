@@ -16,6 +16,8 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuaGhrbGdmaXJ2bHJ2aXZuenZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjQ2NTcsImV4cCI6MjA4MzMwMDY1N30.bhtmLRhKX0uzHEaFnui71Gvt89eXncA3lpzEfHUoxS4"
 );
 
+const ADMIN_EMAIL = "samuelcasseresbx@gmail.com";
+
 function App() {
   const [data, setData] = useState<AppData>({ stories: [], folders: [], cloudImages: [] });
   const [view, setView] = useState<ViewMode>('HOME');
@@ -26,8 +28,9 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [showAuth, setShowAuth] = useState(false);
 
+  const isAdmin = session?.user?.email === ADMIN_EMAIL;
+
   useEffect(() => {
-    // Escuchar cambios de sesión
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -105,7 +108,8 @@ function App() {
           status: updatedStory.status,
           content_json: updatedStory.pages,
           updated_at: new Date().toISOString(),
-          user_id: session.user.id
+          user_id: session.user.id,
+          is_admin: isAdmin // Guardamos si es post de admin
         };
 
         const { error } = await supabase
@@ -117,7 +121,7 @@ function App() {
         console.error("Error de red Supabase:", e);
       }
     }
-  }, [session]);
+  }, [session, isAdmin]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -130,7 +134,7 @@ function App() {
         <div className="flex flex-col items-center animate-pulse">
           <div className="mb-6 p-4 border border-ink-200 dark:border-ink-800 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Inspiración Manual...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Verificando Credenciales...</div>
         </div>
       </div>
     );
@@ -152,6 +156,7 @@ function App() {
             session={session}
             onAuthOpen={() => setShowAuth(true)}
             onLogout={handleLogout}
+            isAdmin={isAdmin}
           />
         )}
         {view === 'LIBRARY' && (
@@ -180,6 +185,7 @@ function App() {
               setView('EDITOR');
             }}
             supabase={supabase}
+            isAdmin={isAdmin}
           />
         )}
         {view === 'EDITOR' && activeStory && (
@@ -188,6 +194,7 @@ function App() {
             onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
+            isAdmin={isAdmin}
           />
         )}
       </div>

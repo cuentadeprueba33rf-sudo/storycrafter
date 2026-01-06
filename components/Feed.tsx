@@ -8,9 +8,10 @@ interface FeedProps {
   onBack: () => void;
   onReadStory: (story: Story) => void;
   supabase: SupabaseClient;
+  isAdmin: boolean;
 }
 
-export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase }) => {
+export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdmin }) => {
   const [stories, setStories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -32,6 +33,25 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase }) => 
       console.error("Error de conexión:", e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeletePost = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!window.confirm("¿Estás seguro de eliminar esta publicación de la comunidad?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from('public_stories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      alert("Publicación eliminada correctamente.");
+      fetchStories();
+    } catch (err) {
+      alert("Error al eliminar la publicación.");
+      console.error(err);
     }
   };
 
@@ -102,15 +122,12 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase }) => 
               <div 
                 key={story.id} 
                 onClick={() => {
-                   // Manejamos si content_json viene como string o como objeto
                    let pages = [];
                    try {
                      pages = typeof story.content_json === 'string' 
                        ? JSON.parse(story.content_json) 
                        : story.content_json || [];
-                   } catch(e) {
-                     pages = [];
-                   }
+                   } catch(e) { pages = []; }
 
                    const mappedStory: Story = {
                      id: story.id,
@@ -120,7 +137,7 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase }) => 
                      wordCountGoal: 0,
                      genres: story.genres || [],
                      status: story.status || StoryStatus.Draft,
-                     folderId: 'temp_feed', // Marcamos como lectura de feed
+                     folderId: 'temp_feed',
                      createdAt: new Date(story.updated_at).getTime(),
                      updatedAt: new Date(story.updated_at).getTime(),
                      pages: pages,
@@ -129,14 +146,32 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase }) => 
                    };
                    onReadStory(mappedStory);
                 }}
-                className="group relative bg-white dark:bg-ink-900 p-10 rounded-[3rem] border border-black/5 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-700 cursor-pointer overflow-hidden flex flex-col"
+                className={`group relative bg-white dark:bg-ink-900 p-10 rounded-[3rem] border shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-700 cursor-pointer overflow-hidden flex flex-col ${story.is_admin ? 'border-amber-500/30' : 'border-black/5'}`}
               >
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
                 
                 <div className="relative z-10 flex-1 space-y-5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-600/80">{story.author_name || 'Anónimo'}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${story.is_admin ? 'bg-amber-500 animate-bounce' : 'bg-ink-400 animate-pulse'}`}></div>
+                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5 ${story.is_admin ? 'text-amber-600' : 'text-ink-500'}`}>
+                        {story.author_name || 'Anónimo'}
+                        {story.is_admin && (
+                           <div className="bg-amber-500 text-white rounded-full p-0.5 shadow-sm">
+                             <Icons.Check size={6} strokeWidth={5} />
+                           </div>
+                        )}
+                      </span>
+                    </div>
+                    {isAdmin && (
+                      <button 
+                        onClick={(e) => handleDeletePost(e, story.id)}
+                        className="p-2 text-red-500 bg-red-50 dark:bg-red-950/20 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                        title="Eliminar publicación (Moderación)"
+                      >
+                        <Icons.Delete size={14} />
+                      </button>
+                    )}
                   </div>
                   <h3 className="text-2xl font-serif font-bold leading-tight line-clamp-2 text-ink-900 dark:text-white">{story.title}</h3>
                   <p className="text-xs font-serif italic text-ink-400 line-clamp-4 leading-relaxed opacity-80">

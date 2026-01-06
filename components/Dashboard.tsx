@@ -13,9 +13,8 @@ interface DashboardProps {
   session: Session | null;
   onAuthOpen: () => void;
   onLogout: () => void;
+  isAdmin?: boolean;
 }
-
-type ModalType = 'cloud' | 'updates' | 'no-ai' | 'credits' | null;
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   onEnterStudio, 
@@ -24,56 +23,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateCloud,
   session,
   onAuthOpen,
-  onLogout
+  onLogout,
+  isAdmin
 }) => {
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const maxSlots = 9; 
-  const currentCount = cloudImages.length;
-  const storagePercentage = (currentCount / maxSlots) * 100;
-
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    const availableSlots = maxSlots - cloudImages.length;
-    if (availableSlots <= 0) return;
-    const filesToUpload = Array.from(files).slice(0, availableSlots);
-    filesToUpload.forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateCloud([...cloudImages, {
-          id: generateId('cloud_'),
-          data: reader.result as string,
-          name: file.name,
-          size: file.size,
-          createdAt: Date.now()
-        }]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
 
   const sections = [
     { id: 'studio', title: 'Studio', description: 'Manuscritos', icon: <Icons.Pen size={14} />, action: onEnterStudio, primary: true },
     { id: 'explore', title: 'Explorar', description: 'Comunidad', icon: <Icons.Globe size={14} />, action: onEnterExplore, primary: true },
     { id: 'cloud', title: 'La Nube', description: 'Bóveda Visual', icon: <Icons.Cloud size={14} />, action: () => setActiveModal('cloud') },
-    { id: 'credits', title: 'V3.0.1', description: 'Autenticación', icon: <Icons.Zap size={14} />, action: () => setActiveModal('updates') }
+    { id: 'credits', title: 'Admin Mode', description: isAdmin ? 'Activado' : 'V3.1.0', icon: <Icons.Zap size={14} />, action: () => {} }
   ];
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-ink-50 dark:bg-black p-8 md:p-20 lg:p-32 relative overflow-hidden custom-scrollbar">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-ink-200/10 dark:bg-white/5 rounded-full blur-[120px] pointer-events-none"></div>
       
-      {/* User Header */}
       <div className="absolute top-10 right-10 flex items-center gap-4 z-50">
         {session ? (
           <div className="flex items-center gap-4 bg-white/50 dark:bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-black/5">
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-black uppercase tracking-widest text-ink-900 dark:text-white">{session.user.user_metadata.display_name}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-ink-900 dark:text-white">
+                  {session.user.user_metadata.display_name}
+                </span>
+                {isAdmin && (
+                  <div className="bg-amber-500 text-white rounded-full p-0.5" title="Verificado">
+                    <Icons.Check size={8} strokeWidth={4} />
+                  </div>
+                )}
+              </div>
               <button onClick={onLogout} className="text-[8px] font-black uppercase text-red-500 tracking-widest opacity-60 hover:opacity-100">Cerrar Sesión</button>
             </div>
-            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white font-serif font-bold italic shadow-lg">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-serif font-bold italic shadow-lg ${isAdmin ? 'bg-amber-600' : 'bg-ink-900 dark:bg-ink-800'}`}>
               {session.user.user_metadata.display_name?.[0]}
             </div>
           </div>
@@ -126,29 +109,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
            </div>
         </div>
       </div>
-
-      {activeModal === 'cloud' && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink-950/40 backdrop-blur-md">
-           <div className="bg-white dark:bg-ink-950 w-full max-w-4xl rounded-[3rem] p-12 overflow-hidden shadow-2xl border border-black/5">
-              <div className="flex justify-between items-center mb-10">
-                <h2 className="text-xl font-serif font-bold">La Bóveda Visual</h2>
-                <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={20} /></button>
-              </div>
-              <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
-                 {cloudImages.map(img => (
-                   <div key={img.id} className="aspect-square rounded-2xl overflow-hidden relative group">
-                      <img src={img.data} className="w-full h-full object-cover" />
-                      <button onClick={() => onUpdateCloud(cloudImages.filter(i => i.id !== img.id))} className="absolute inset-0 bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Icons.Delete size={20} /></button>
-                   </div>
-                 ))}
-                 {currentCount < 9 && (
-                   <button onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-black/5 flex items-center justify-center opacity-40 hover:opacity-100 transition-opacity"><Icons.Plus size={24} /></button>
-                 )}
-              </div>
-              <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*" onChange={handleUpload} />
-           </div>
-        </div>
-      )}
     </div>
   );
 };
