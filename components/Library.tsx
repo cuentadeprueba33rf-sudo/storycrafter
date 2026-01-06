@@ -18,6 +18,20 @@ interface LibraryProps {
   onShareStory: (storyId: string) => void;
 }
 
+const StatusBadge: React.FC<{ status: StoryStatus }> = ({ status }) => {
+  const styles = {
+    [StoryStatus.Draft]: 'bg-ink-100 text-ink-500 border-ink-200 dark:bg-ink-800/40 dark:text-ink-400 dark:border-ink-700/50',
+    [StoryStatus.InProgress]: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50',
+    [StoryStatus.Finished]: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50',
+  };
+
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter border ${styles[status]}`}>
+      {status}
+    </span>
+  );
+};
+
 export const Library: React.FC<LibraryProps> = ({
   stories,
   folders,
@@ -33,7 +47,6 @@ export const Library: React.FC<LibraryProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<LibraryViewMode>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterGenre, setFilterGenre] = useState<string>('');
   
   const currentFolder = folders.find(f => f.id === currentFolderId);
 
@@ -47,55 +60,76 @@ export const Library: React.FC<LibraryProps> = ({
     return stories.filter(s => {
       const inCurrentFolder = s.folderId === currentFolderId;
       const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGenre = filterGenre ? s.genres.includes(filterGenre as Genre) : true;
-      return inCurrentFolder && matchesSearch && matchesGenre;
+      return inCurrentFolder && matchesSearch;
     });
-  }, [stories, currentFolderId, searchQuery, filterGenre]);
+  }, [stories, currentFolderId, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 py-6 bg-white dark:bg-black border-b border-ink-200 dark:border-ink-800 sticky top-0 z-20">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full bg-ink-50 dark:bg-black/95">
+      <div className="px-6 md:px-12 py-8 bg-white dark:bg-black border-b border-ink-200 dark:border-ink-800 sticky top-0 z-20 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-4">
              {currentFolderId && (
-              <button onClick={() => onNavigateFolder(currentFolder?.parentId || null)} className="p-1.5 border border-ink-200 dark:border-ink-800 rounded">
-                <Icons.UpLevel size={16} />
+              <button 
+                onClick={() => onNavigateFolder(currentFolder?.parentId || null)} 
+                className="p-2 bg-ink-100 dark:bg-ink-900 text-ink-600 dark:text-ink-400 rounded-xl hover:scale-105 transition-transform"
+              >
+                <Icons.UpLevel size={18} />
               </button>
             )}
             <div>
-              <h1 className="text-3xl font-serif font-medium">{currentFolder ? currentFolder.name : 'Estudio'}</h1>
-              <p className="text-xs text-ink-500 font-mono mt-1 uppercase tracking-widest">{filteredStories.length} Manuscritos</p>
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-ink-900 dark:text-white tracking-tight">
+                {currentFolder ? currentFolder.name : 'Mi Biblioteca'}
+              </h1>
+              <div className="flex items-center gap-3 mt-1.5">
+                <p className="text-[10px] text-ink-400 font-mono uppercase tracking-[0.2em]">{filteredStories.length} Manuscritos</p>
+                <div className="w-1 h-1 bg-ink-200 dark:bg-ink-800 rounded-full"></div>
+                <p className="text-[10px] text-ink-400 font-mono uppercase tracking-[0.2em]">{filteredFolders.length} Carpetas</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-             <div className="relative">
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             <div className="relative flex-1 md:flex-none">
                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" size={14} />
                <input 
                  type="text" 
-                 placeholder="Buscar..." 
+                 placeholder="Buscar obra..." 
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
-                 className="pl-9 pr-3 py-2 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-md text-sm outline-none"
+                 className="w-full md:w-64 pl-9 pr-4 py-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-ink-900 dark:focus:ring-white transition-all"
                />
              </div>
-             <button onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} className="p-2 border border-ink-200 dark:border-ink-800 rounded">
-               {viewMode === 'GRID' ? <Icons.List size={18} /> : <Icons.Grid size={18} />}
+             <button 
+                onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} 
+                className="p-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white transition-colors"
+             >
+               {viewMode === 'GRID' ? <Icons.List size={20} /> : <Icons.Grid size={20} />}
              </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 pb-32">
+      <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-32 custom-scrollbar">
         {filteredFolders.length > 0 && (
-          <div className="mb-10">
-            <h2 className="text-xs font-bold text-ink-400 mb-4 uppercase tracking-widest">Carpetas</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="mb-12">
+            <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Carpetas de Proyecto</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {filteredFolders.map(folder => (
-                <div key={folder.id} onClick={() => onNavigateFolder(folder.id)} className="group relative p-5 h-32 border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 rounded-sm cursor-pointer hover:border-ink-400">
-                  <Icons.Folder size={28} strokeWidth={1} />
-                  <span className="mt-4 block text-sm font-medium truncate">{folder.name}</span>
-                  <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="absolute top-2 right-2 p-1 text-ink-300 hover:text-red-500 opacity-0 group-hover:opacity-100">
-                    <Icons.Delete size={14} />
+                <div 
+                  key={folder.id} 
+                  onClick={() => onNavigateFolder(folder.id)} 
+                  className="group relative p-5 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-2xl cursor-pointer hover:border-ink-400 dark:hover:border-ink-600 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center"
+                >
+                  <div className="mb-4 p-3 bg-ink-50 dark:bg-black rounded-xl text-ink-400 group-hover:text-ink-900 dark:group-hover:text-white transition-colors">
+                    <Icons.Folder size={24} strokeWidth={1.5} />
+                  </div>
+                  <span className="text-xs font-bold truncate w-full px-2">{folder.name}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} 
+                    className="absolute top-3 right-3 p-1.5 text-ink-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Icons.Delete size={12} />
                   </button>
                 </div>
               ))}
@@ -103,26 +137,108 @@ export const Library: React.FC<LibraryProps> = ({
           </div>
         )}
 
-        <h2 className="text-xs font-bold text-ink-400 mb-4 uppercase tracking-widest">Historias</h2>
-        <div className={viewMode === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col divide-y divide-ink-200 dark:divide-ink-800"}>
-          {filteredStories.map(story => (
-            <div key={story.id} onClick={() => onOpenStory(story.id)} className={`group cursor-pointer ${viewMode === 'GRID' ? 'p-6 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-sm h-48 flex flex-col justify-between' : 'py-4 flex items-center justify-between hover:bg-ink-100 dark:hover:bg-ink-900 px-2'}`}>
-              <div>
-                <h3 className="font-serif text-lg font-medium">{story.title}</h3>
-                <p className="text-xs text-ink-500 font-mono mt-1 uppercase">{formatDate(story.updatedAt)} • {story.status}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={(e) => { e.stopPropagation(); onShareStory(story.id); }} className="p-1.5 text-ink-400 hover:text-ink-900"><Icons.Share size={14} /></button>
-                <button onClick={(e) => { e.stopPropagation(); onDeleteStory(story.id); }} className="p-1.5 text-ink-400 hover:text-red-500"><Icons.Delete size={14} /></button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Manuscritos Recientes</h2>
+        
+        {filteredStories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-ink-200 dark:border-ink-800 rounded-[3rem]">
+            <Icons.Book size={48} className="text-ink-200 mb-4" />
+            <p className="text-ink-400 font-serif italic text-lg text-center">No hay historias en esta sección.<br/><span className="text-sm font-sans not-italic font-bold text-ink-900 dark:text-white mt-2 inline-block">Crea tu primera obra maestra hoy.</span></p>
+          </div>
+        ) : (
+          <div className={viewMode === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-3"}>
+            {filteredStories.map(story => {
+              const words = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
+              
+              if (viewMode === 'GRID') {
+                return (
+                  <div 
+                    key={story.id} 
+                    onClick={() => onOpenStory(story.id)} 
+                    className="group relative p-8 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-[2.5rem] flex flex-col justify-between h-72 hover:-translate-y-1 hover:shadow-2xl hover:border-ink-900 dark:hover:border-white transition-all duration-500 overflow-hidden"
+                  >
+                    {/* Decorative Paper Effect */}
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-ink-50 dark:bg-black rounded-full opacity-50 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-6">
+                        <StatusBadge status={story.status} />
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); onShareStory(story.id); }} className="p-2 hover:bg-ink-100 dark:hover:bg-black rounded-full transition-colors"><Icons.Share size={14} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); onDeleteStory(story.id); }} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-ink-400 hover:text-red-500 rounded-full transition-colors"><Icons.Delete size={14} /></button>
+                        </div>
+                      </div>
+                      <h3 className="font-serif text-2xl font-bold leading-tight text-ink-900 dark:text-white group-hover:text-ink-950 dark:group-hover:text-white mb-2 line-clamp-2">
+                        {story.title}
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {story.genres.slice(0, 2).map(g => (
+                          <span key={g} className="text-[8px] font-mono text-ink-400 uppercase tracking-widest">{g}</span>
+                        ))}
+                        {story.genres.length > 2 && <span className="text-[8px] font-mono text-ink-300 uppercase tracking-widest">+{story.genres.length - 2}</span>}
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex items-end justify-between border-t border-ink-100 dark:border-ink-800/50 pt-5 mt-auto">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-mono text-ink-400 uppercase tracking-widest mb-1">Último cambio</span>
+                        <span className="text-[10px] font-bold text-ink-700 dark:text-ink-400 uppercase">{formatDate(story.updatedAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-ink-50 dark:bg-black rounded-xl">
+                        <Icons.Pen size={10} className="text-ink-400" />
+                        <span className="text-[10px] font-black text-ink-900 dark:text-white">{words}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div 
+                    key={story.id} 
+                    onClick={() => onOpenStory(story.id)} 
+                    className="group flex items-center justify-between p-5 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-2xl hover:border-ink-900 dark:hover:border-white transition-all duration-300 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-6 overflow-hidden">
+                      <div className="hidden sm:flex p-3 bg-ink-50 dark:bg-black rounded-xl text-ink-400">
+                        <Icons.File size={20} strokeWidth={1.5} />
+                      </div>
+                      <div className="overflow-hidden">
+                        <h3 className="font-serif text-lg font-bold text-ink-900 dark:text-white truncate">{story.title}</h3>
+                        <div className="flex items-center gap-3 mt-1 overflow-hidden">
+                          <StatusBadge status={story.status} />
+                          <span className="text-[10px] font-mono text-ink-400 uppercase tracking-widest whitespace-nowrap">{formatDate(story.updatedAt)}</span>
+                          <span className="hidden xs:inline text-[10px] font-mono text-ink-300 uppercase tracking-widest whitespace-nowrap">• {words} palabras</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 ml-4">
+                      <button onClick={(e) => { e.stopPropagation(); onShareStory(story.id); }} className="p-2 text-ink-400 hover:text-ink-900 dark:hover:text-white transition-colors"><Icons.Share size={16} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); onDeleteStory(story.id); }} className="p-2 text-ink-400 hover:text-red-500 transition-colors"><Icons.Delete size={16} /></button>
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
-        <button onClick={onCreateFolder} className="w-12 h-12 bg-white dark:bg-ink-900 border border-ink-300 dark:border-ink-700 rounded-full flex items-center justify-center shadow-lg"><Icons.FolderPlus size={20} /></button>
-        <button onClick={onCreateStory} className="w-14 h-14 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center shadow-xl"><Icons.Plus size={24} /></button>
+      <div className="fixed bottom-10 right-10 flex flex-col gap-4 z-40">
+        <button 
+          onClick={onCreateFolder} 
+          className="group w-14 h-14 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-[1.5rem] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all"
+          title="Nueva Carpeta"
+        >
+          <Icons.FolderPlus size={22} />
+          <div className="absolute right-full mr-4 px-3 py-1 bg-ink-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Nueva Carpeta</div>
+        </button>
+        <button 
+          onClick={onCreateStory} 
+          className="group w-16 h-16 bg-ink-900 dark:bg-white text-white dark:text-black rounded-[1.8rem] flex items-center justify-center shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all"
+          title="Nuevo Manuscrito"
+        >
+          <Icons.Plus size={28} />
+          <div className="absolute right-full mr-4 px-3 py-1 bg-ink-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Escribir Historia</div>
+        </button>
       </div>
     </div>
   );
