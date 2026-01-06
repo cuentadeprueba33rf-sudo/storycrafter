@@ -49,6 +49,7 @@ export const Editor: React.FC<EditorProps> = ({
   const [activeTab, setActiveTab] = useState<InspectorTab>('metas');
   const [zenMode, setZenMode] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Character form state
@@ -107,14 +108,16 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
+  // AUTOSAVE LOGIC (2 seconds of inactivity)
   useEffect(() => {
     if (!isDirty) return;
+    
     const timer = setTimeout(() => {
-      onSave(story);
-      setIsDirty(false);
-    }, 5000);
+      handleManualSave();
+    }, 2000);
+    
     return () => clearTimeout(timer);
-  }, [story, onSave, isDirty]);
+  }, [story, isDirty]);
 
   const handleInput = () => {
     if (editorRef.current) {
@@ -126,6 +129,13 @@ export const Editor: React.FC<EditorProps> = ({
         pages: prev.pages.map(p => p.id === activePageId ? { ...p, content } : p)
       }));
     }
+  };
+
+  const handleManualSave = () => {
+    setIsSaving(true);
+    onSave(story);
+    setIsDirty(false);
+    setTimeout(() => setIsSaving(false), 800);
   };
 
   const handleCreatePage = () => {
@@ -265,26 +275,43 @@ export const Editor: React.FC<EditorProps> = ({
           <div className="flex items-center gap-4">
             <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.Back size={18} /></button>
             <div className="flex flex-col">
-              <h1 className="text-xs font-serif font-bold truncate max-w-[120px] md:max-w-[300px]">{story.title}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xs font-serif font-bold truncate max-w-[120px] md:max-w-[300px]">{story.title}</h1>
+                {isSaving ? (
+                  <span className="text-[8px] font-black uppercase text-amber-500 animate-pulse">Guardando...</span>
+                ) : (
+                  <Icons.Check size={10} className="text-green-500 opacity-40" />
+                )}
+              </div>
               <span className="text-[9px] font-mono uppercase tracking-widest opacity-40">{totalWords} palabras</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-3">
             {isSprintActive && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
                  <Icons.Timer size={12} className="text-red-500 animate-pulse" />
                  <span className="text-[10px] font-mono text-red-500 font-bold">{formatSprintTime(sprintTime)}</span>
               </div>
             )}
+
+            {/* BOTÓN DE GUARDAR MANUAL (RESTAURADO) */}
+            <button 
+              onClick={handleManualSave}
+              className={`p-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'hover:bg-black/5 text-ink-400 opacity-60'}`}
+              title="Guardar Manuscrito"
+            >
+              <Icons.Save size={18} />
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{isDirty ? 'Guardar' : 'Guardado'}</span>
+            </button>
             
             <button 
               onClick={() => setShowInspector(!showInspector)} 
               className={`p-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 ${showInspector ? 'bg-amber-500 text-white shadow-lg scale-105' : 'hover:bg-black/5 text-ink-400'}`}
-              title={showInspector ? "Cerrar Panel" : "Abrir Herramientas"}
+              title={showInspector ? "Cerrar Panel" : "Herramientas de Escritura"}
             >
               <Icons.Magic size={18} />
-              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{showInspector ? 'Cerrar' : 'Herramientas'}</span>
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Panel</span>
             </button>
           </div>
         </header>
@@ -309,12 +336,11 @@ export const Editor: React.FC<EditorProps> = ({
                 className={`flex-1 w-full bg-transparent outline-none font-serif leading-[1.8] min-h-[50vh] pb-64 selection:bg-ink-200 dark:selection:bg-ink-700 ${zenMode ? 'text-xl md:text-2xl text-justify' : 'text-lg md:text-xl'}`}
                 onInput={handleInput}
                 spellCheck={false}
-                data-placeholder="El silencio es el lienzo, tus palabras la tinta..."
+                data-placeholder="Tu historia comienza con una sola palabra..."
               />
             </div>
           </div>
 
-          {/* GESTOR DE CAPÍTULOS INFERIOR (RESTAURADO) */}
           {!zenMode && (
             <div className="shrink-0 border-t border-black/5 p-4 flex items-center justify-center bg-inherit z-50">
               <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
