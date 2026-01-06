@@ -3,7 +3,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>StoryCraft | Institutional Creative Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -11,6 +11,9 @@
         darkMode: 'class',
         theme: {
           extend: {
+            screens: {
+              'xs': '400px',
+            },
             colors: {
               ink: {
                 50: '#faf9f6',
@@ -38,17 +41,27 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@100;400&display=swap');
       
-      ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+      * { -webkit-tap-highlight-color: transparent; }
+      
+      ::-webkit-scrollbar { width: 0px; height: 0px; }
       
       body { 
         font-feature-settings: "ss01", "cv01"; 
         text-rendering: optimizeLegibility; 
         -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+        width: 100%;
+        position: fixed; /* Evita el 'bounce' del scroll en iOS */
+        height: 100%;
       }
       
-      #root { min-height: 100vh; position: relative; z-index: 1; }
+      #root { 
+        height: 100%; 
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
 
       /* The Architectural Noise */
       body::before {
@@ -66,24 +79,15 @@
       }
 
       @keyframes elite-reveal {
-        from { opacity: 0; transform: translateY(30px) scale(0.98); filter: blur(10px); }
+        from { opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(10px); }
         to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
       }
       .animate-elite { 
-        animation: elite-reveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        animation: elite-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
       }
 
-      /* Custom cursor and hover effects for extreme polish */
-      .hover-lift {
-        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-      .hover-lift:hover {
-        transform: translateY(-8px);
-      }
-
-      .text-glow {
-        text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
   <script type="importmap">
 {
@@ -97,7 +101,7 @@
 }
 </script>
 </head>
-  <body class="bg-[#050505] text-white overflow-hidden font-sans">
+  <body class="bg-[#050505] text-white font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
