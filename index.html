@@ -3,7 +3,6 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>StoryCraft Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,11 +24,6 @@
                 800: '#27272a',
                 900: '#18181b',
                 950: '#09090b',
-              },
-              accent: {
-                light: '#a1a1aa',
-                DEFAULT: '#18181b', 
-                dark: '#fafafa'
               }
             },
             fontFamily: {
@@ -47,41 +41,26 @@
     </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap');
-
-      ::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #d4d4d8;
-        border-radius: 0px;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #3f3f46;
-      }
-      
-      body {
-        font-feature-settings: "ss01", "cv01";
-      }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #d4d4d8; }
+      .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+      body { font-feature-settings: "ss01", "cv01"; }
+      #root { min-height: 100vh; }
     </style>
   <script type="importmap">
 {
   "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client"
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
   }
 }
 </script>
 </head>
-  <body class="bg-ink-50 dark:bg-black text-ink-900 dark:text-ink-100 transition-colors duration-200 overflow-hidden font-sans antialiased selection:bg-ink-200 dark:selection:bg-ink-800">
+  <body class="bg-ink-50 dark:bg-black text-ink-900 dark:text-ink-100 transition-colors duration-200 overflow-hidden font-sans antialiased">
     <div id="root"></div>
-    <!-- Script de entrada explícito para asegurar la carga en todos los entornos -->
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

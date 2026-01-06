@@ -1,6 +1,6 @@
 
-import { Story, Folder, Page, Genre, StoryStatus } from '../types.ts';
-import { STORAGE_KEY, ID_PREFIX } from '../constants.ts';
+import { Story, Folder, Page, Genre, StoryStatus } from '../types';
+import { STORAGE_KEY, ID_PREFIX } from '../constants';
 
 export interface AppData {
   stories: Story[];
@@ -18,7 +18,6 @@ export const loadData = (): AppData => {
     if (!raw) return DEFAULT_DATA;
     return JSON.parse(raw);
   } catch (e) {
-    console.error("Failed to load data", e);
     return DEFAULT_DATA;
   }
 };
@@ -26,9 +25,7 @@ export const loadData = (): AppData => {
 export const saveData = (data: AppData) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error("Failed to save data", e);
-  }
+  } catch (e) {}
 };
 
 export const generateId = (prefix: string): string => {
@@ -36,7 +33,7 @@ export const generateId = (prefix: string): string => {
 };
 
 export const countWords = (text: string): number => {
-  if (!text.trim()) return 0;
+  if (!text || !text.trim()) return 0;
   return text.trim().split(/\s+/).length;
 };
 
