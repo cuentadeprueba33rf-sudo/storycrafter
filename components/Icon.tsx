@@ -29,7 +29,12 @@ import {
   Info,
   Bell,
   Terminal,
-  Home
+  Home,
+  Maximize2,
+  Minimize2,
+  Book,
+  Coffee,
+  Target
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -75,5 +80,10 @@ export const Icons = {
   Alert: Bell,
   Terminal,
   Home,
-  FolderPlus
+  FolderPlus,
+  ZenOpen: Maximize2,
+  ZenClose: Minimize2,
+  Bible: Book,
+  Sepia: Coffee,
+  Target
 };

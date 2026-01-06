@@ -24,7 +24,7 @@ export enum StoryStatus {
 export interface Page {
   id: string;
   title: string;
-  content: string; // Ahora almacenará HTML
+  content: string;
   order: number;
 }
 
@@ -32,6 +32,8 @@ export interface Story {
   id: string;
   title: string;
   synopsis: string;
+  bible: string; // Notas de personajes y mundo
+  wordCountGoal: number; // Meta de palabras
   genres: Genre[];
   status: StoryStatus;
   folderId: string | null;
@@ -50,3 +52,5 @@ export interface Folder {
 export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR';
 
 export type LibraryViewMode = 'LIST' | 'GRID';
+
+export type EditorTheme = 'LIGHT' | 'DARK' | 'SEPIA';

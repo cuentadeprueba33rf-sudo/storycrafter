@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Story, Page, Genre, StoryStatus } from '../types';
+import { Story, Page, Genre, StoryStatus, EditorTheme } from '../types';
 import { Icons } from './Icon';
 import { ALL_GENRES, ALL_STATUSES, ID_PREFIX } from '../constants';
 import { countWords, generateId } from '../utils/storage';
@@ -10,8 +10,8 @@ interface EditorProps {
   onSave: (story: Story) => void;
   onClose: () => void;
   onShare: () => void;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
+  theme: EditorTheme;
+  onChangeTheme: (theme: EditorTheme) => void;
 }
 
 export const Editor: React.FC<EditorProps> = ({ 
@@ -19,22 +19,23 @@ export const Editor: React.FC<EditorProps> = ({
   onSave, 
   onClose, 
   onShare, 
-  darkMode, 
-  onToggleDarkMode 
+  theme,
+  onChangeTheme
 }) => {
   const [story, setStory] = useState<Story>(initialStory);
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
   const [showMeta, setShowMeta] = useState(false);
+  const [showBible, setShowBible] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
+  const [zenMode, setZenMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false); // Seguimiento de cambios sin guardar
+  const [isDirty, setIsDirty] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string>(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   
   const editorRef = useRef<HTMLDivElement>(null);
   const activePage = story.pages.find(p => p.id === activePageId);
 
-  // Sincronizar contenido cuando cambia la página activa
   useEffect(() => {
     if (editorRef.current && activePage) {
       if (editorRef.current.innerHTML !== activePage.content) {
@@ -43,30 +44,25 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [activePageId]);
 
-  // Manejador para prevenir el refresco o cierre de pestaña
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
-        e.returnValue = ''; // Requerido por la mayoría de navegadores para mostrar el prompt
+        e.returnValue = '';
         return '';
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Auto-guardado cada 15 segundos si hay cambios
   useEffect(() => {
     if (!isDirty) return;
-
     const timer = setTimeout(() => {
       onSave(story);
       setIsDirty(false);
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 15000);
-    
     return () => clearTimeout(timer);
   }, [story, onSave, isDirty]);
 
@@ -107,47 +103,8 @@ export const Editor: React.FC<EditorProps> = ({
       order: story.pages.length
     };
     setIsDirty(true);
-    setStory(prev => ({
-      ...prev,
-      pages: [...prev.pages, newPage]
-    }));
+    setStory(prev => ({ ...prev, pages: [...prev.pages, newPage] }));
     setActivePageId(newPage.id);
-    if (window.innerWidth < 768) setShowChapters(false);
-  };
-
-  const handleDeletePage = (id: string) => {
-    if (story.pages.length <= 1) {
-      alert("La obra debe contener al menos una sección.");
-      return;
-    }
-    if (!window.confirm("¿Eliminar sección permanentemente?")) return;
-    
-    setIsDirty(true);
-    const newPages = story.pages.filter(p => p.id !== id);
-    setStory(prev => ({ ...prev, pages: newPages }));
-    if (activePageId === id) {
-      setActivePageId(newPages[0].id);
-    }
-  };
-
-  const movePage = (index: number, direction: 'up' | 'down') => {
-    const newPages = [...story.pages];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newPages.length) return;
-    
-    [newPages[index], newPages[targetIndex]] = [newPages[targetIndex], newPages[index]];
-    setIsDirty(true);
-    setStory(prev => ({ ...prev, pages: newPages }));
-  };
-
-  const toggleGenre = (genre: Genre) => {
-    setIsDirty(true);
-    setStory(prev => {
-      const genres = prev.genres.includes(genre)
-        ? prev.genres.filter(g => g !== genre)
-        : [...prev.genres, genre];
-      return { ...prev, genres };
-    });
   };
 
   const handleSafeClose = () => {
@@ -160,246 +117,204 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
-  const currentWordCount = activePage ? countWords(editorRef.current?.innerText || '') : 0;
-  const totalWordCount = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
-  const readingTime = Math.ceil(totalWordCount / 200);
+  const totalWords = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
+  const progressPercent = story.wordCountGoal > 0 ? Math.min(100, (totalWords / story.wordCountGoal) * 100) : 0;
+
+  const getThemeClasses = () => {
+    switch(theme) {
+      case 'DARK': return 'bg-black text-ink-100 dark';
+      case 'SEPIA': return 'bg-[#f4ecd8] text-[#5d4037]';
+      default: return 'bg-white text-ink-900';
+    }
+  };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-black transition-colors duration-500 overflow-hidden">
-      {/* Toast de Guardado Minimalista */}
-      {saveMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-1.5 bg-ink-900 dark:bg-white text-white dark:text-black text-[9px] font-black uppercase tracking-widest rounded-full shadow-xl animate-in fade-in slide-in-from-top-2 duration-300 flex items-center gap-2">
-          <Icons.Check size={10} /> {saveMessage}
+    <div className={`flex flex-col h-full transition-colors duration-700 overflow-hidden ${getThemeClasses()}`}>
+      {/* Barra de Progreso de Meta de Escritura */}
+      {!zenMode && story.wordCountGoal > 0 && (
+        <div className="h-1 w-full bg-ink-100 dark:bg-ink-900 relative z-50">
+          <div 
+            className="h-full bg-ink-900 dark:bg-white transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]" 
+            style={{ width: `${progressPercent}%` }}
+          ></div>
         </div>
       )}
 
-      <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 border-b border-ink-200 dark:border-ink-800 bg-white dark:bg-black z-30 shadow-sm">
-        <div className="flex items-center gap-1.5 md:gap-4">
-          <button onClick={handleSafeClose} className="p-2 -ml-1 text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-900 rounded-full transition-colors">
-            <Icons.Back size={18} />
-          </button>
-          
-          <button 
-            onClick={() => setShowChapters(!showChapters)} 
-            className="md:hidden p-2 text-ink-900 dark:text-white bg-ink-100 dark:bg-ink-900 rounded-lg flex items-center"
-          >
-            <Icons.List size={16} />
-          </button>
-
-          <div className="hidden sm:block">
-            <input 
-              className="font-serif font-bold text-sm md:text-base bg-transparent outline-none text-ink-900 dark:text-white border-none p-0 focus:ring-0 w-auto min-w-[80px] max-w-[150px] md:max-w-xs"
-              value={story.title}
-              onChange={(e) => {
-                setIsDirty(true);
-                setStory(prev => ({ ...prev, title: e.target.value }));
-              }}
-              placeholder="Título..."
-            />
-          </div>
+      {/* Toast de Guardado */}
+      {saveMessage && !zenMode && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] px-4 py-1.5 bg-ink-900 dark:bg-white text-white dark:text-black text-[9px] font-black uppercase tracking-widest rounded-full shadow-2xl animate-in fade-in slide-in-from-top-2">
+          <Icons.Check size={10} className="inline mr-2" /> {saveMessage}
         </div>
+      )}
 
-        <div className="flex items-center gap-1 md:gap-2">
-          <button 
-            onClick={onToggleDarkMode} 
-            className="p-2 text-ink-500 hover:text-ink-900 dark:hover:text-white rounded-md"
-          >
-            {darkMode ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
-          </button>
-          
-          <button 
-            onClick={() => setShowMeta(!showMeta)} 
-            className={`p-2 rounded-md transition-colors ${showMeta ? 'bg-ink-100 dark:bg-ink-900 text-ink-900 dark:text-white' : 'text-ink-500'}`}
-          >
-            <Icons.Docs size={18} />
-          </button>
+      {!zenMode && (
+        <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 border-b border-ink-200 dark:border-ink-800 z-30 shadow-sm transition-opacity duration-500">
+          <div className="flex items-center gap-1.5 md:gap-4">
+            <button onClick={handleSafeClose} className="p-2 -ml-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"><Icons.Back size={18} /></button>
+            <button onClick={() => setShowChapters(!showChapters)} className="md:hidden p-2 bg-black/5 dark:bg-white/5 rounded-lg"><Icons.List size={16} /></button>
+            <div className="hidden sm:block">
+              <input 
+                className="font-serif font-bold text-sm bg-transparent outline-none border-none p-0 focus:ring-0 w-auto max-w-[150px]"
+                value={story.title}
+                onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, title: e.target.value })); }}
+              />
+            </div>
+          </div>
 
-          <div className="h-5 w-[1px] bg-ink-200 dark:bg-ink-800 mx-1"></div>
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl mr-2">
+              <button onClick={() => onChangeTheme('LIGHT')} className={`p-1.5 rounded-lg ${theme === 'LIGHT' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-400'}`}><Icons.Sun size={14} /></button>
+              <button onClick={() => onChangeTheme('SEPIA')} className={`p-1.5 rounded-lg ${theme === 'SEPIA' ? 'bg-[#5d4037] text-white shadow-sm' : 'text-ink-400'}`}><Icons.Sepia size={14} /></button>
+              <button onClick={() => onChangeTheme('DARK')} className={`p-1.5 rounded-lg ${theme === 'DARK' ? 'bg-black text-white shadow-sm' : 'text-ink-400'}`}><Icons.Moon size={14} /></button>
+            </div>
+            
+            <button onClick={() => setZenMode(true)} title="Modo Zen" className="p-2 text-ink-400 hover:text-current"><Icons.ZenOpen size={18} /></button>
+            <button onClick={() => setShowBible(!showBible)} title="Biblia del Proyecto" className={`p-2 rounded-md ${showBible ? 'bg-black/10' : 'text-ink-400'}`}><Icons.Bible size={18} /></button>
+            <button onClick={() => setShowMeta(!showMeta)} className={`p-2 rounded-md ${showMeta ? 'bg-black/10' : 'text-ink-400'}`}><Icons.Docs size={18} /></button>
 
-          <button 
-            onClick={handleManualSave} 
-            disabled={isSaving} 
-            className={`px-3 md:px-5 py-1.5 md:py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-full transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-md ${
-              isDirty 
-              ? 'bg-ink-900 dark:bg-white text-white dark:text-black' 
-              : 'bg-ink-100 dark:bg-ink-800 text-ink-400 dark:text-ink-500'
-            }`}
-          >
-            {isSaving ? (
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black rounded-full animate-spin"></div>
-            ) : (
+            <button 
+              onClick={handleManualSave} 
+              disabled={isSaving} 
+              className={`px-3 md:px-5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg' : 'opacity-40'}`}
+            >
               <Icons.Save size={14} />
-            )}
-            <span className="hidden min-[450px]:inline">{isSaving ? "Guardando" : (isDirty ? "Guardar" : "Guardado")}</span>
-          </button>
-        </div>
-      </header>
+              <span className="hidden min-[450px]:inline">{isSaving ? "Sinc" : (isDirty ? "Guardar" : "Ok")}</span>
+            </button>
+          </div>
+        </header>
+      )}
 
-      {/* Toolbar Editorial */}
-      <div className="flex items-center justify-start md:justify-center gap-0.5 md:gap-1 px-4 py-1.5 bg-ink-50 dark:bg-ink-950 border-b border-ink-200 dark:border-ink-800 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-0.5 pr-4 border-r border-ink-200 dark:border-ink-800 md:border-none md:pr-0">
-          <button onClick={() => execCommand('bold')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><b>B</b></button>
-          <button onClick={() => execCommand('italic')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><i>I</i></button>
-          <button onClick={() => execCommand('underline')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><u>U</u></button>
-        </div>
-        <div className="flex items-center gap-0.5 px-2">
-          <button onClick={() => execCommand('justifyLeft')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><Icons.List size={14} /></button>
-          <button onClick={() => execCommand('justifyCenter')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors" style={{ transform: 'rotate(90deg)' }}><Icons.More size={14} /></button>
-          <button onClick={() => execCommand('insertUnorderedList')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-700 dark:text-ink-300 transition-colors"><Icons.Grid size={14} /></button>
-        </div>
-        <button onClick={() => execCommand('removeFormat')} className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-ink-200 dark:hover:bg-ink-800 rounded text-ink-400 transition-colors" title="Limpiar"><Icons.Delete size={14} /></button>
-      </div>
+      {zenMode && (
+        <button 
+          onClick={() => setZenMode(false)} 
+          className="fixed top-6 right-6 z-[100] p-3 bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+          title="Salir de Modo Zen"
+        >
+          <Icons.ZenClose size={20} />
+        </button>
+      )}
 
+      {/* Editor Main Area */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar Móvil/Desktop: Capítulos */}
-        <aside className={`
-          fixed inset-0 z-40 bg-white dark:bg-black md:relative md:translate-x-0 md:inset-auto md:w-72 lg:w-80 border-r border-ink-200 dark:border-ink-800 flex flex-col transition-transform duration-300
-          ${showChapters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        `}>
-          <div className="flex items-center justify-between p-5 border-b border-ink-100 dark:border-ink-900">
-            <div>
-              <p className="text-[10px] font-mono uppercase text-ink-400 tracking-widest">Capítulos</p>
+        {!zenMode && (
+          <aside className={`fixed inset-0 z-40 bg-inherit md:relative md:translate-x-0 md:w-72 border-r border-ink-200 dark:border-ink-800 flex flex-col transition-transform ${showChapters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <div className="p-5 border-b border-black/5 flex justify-between items-center">
+              <span className="text-[10px] font-mono uppercase tracking-widest opacity-40">Capítulos</span>
+              <button onClick={handleAddPage} className="p-1.5 hover:bg-black/5 rounded"><Icons.Plus size={14} /></button>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleAddPage} className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-lg">
-                <Icons.Plus size={14} />
-              </button>
-              <button onClick={() => setShowChapters(false)} className="md:hidden p-2 text-ink-400">
-                <Icons.Back size={18} />
-              </button>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+              {story.pages.map((p, i) => (
+                <div 
+                  key={p.id} 
+                  onClick={() => setActivePageId(p.id)}
+                  className={`p-3 cursor-pointer rounded-xl border transition-all ${activePageId === p.id ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md scale-[1.02]' : 'border-transparent hover:bg-black/5'}`}
+                >
+                  <div className="text-[8px] font-mono uppercase mb-1 opacity-50">Sección {i+1}</div>
+                  <div className="text-xs font-bold truncate">{p.title}</div>
+                </div>
+              ))}
             </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-            {story.pages.map((p, i) => (
-              <div 
-                key={p.id} 
-                onClick={() => { setActivePageId(p.id); if(window.innerWidth < 768) setShowChapters(false); }} 
-                className={`group relative p-3.5 cursor-pointer rounded-xl transition-all border ${
-                  activePageId === p.id 
-                  ? 'bg-ink-900 dark:bg-white border-transparent shadow-lg' 
-                  : 'bg-white dark:bg-ink-950 border-ink-100 dark:border-ink-900 hover:border-ink-200'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[9px] font-mono uppercase tracking-tighter ${activePageId === p.id ? 'text-white/40 dark:text-black/40' : 'text-ink-400'}`}>
-                    Sección {i + 1}
-                  </span>
-                  <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100">
-                    <button onClick={(e) => { e.stopPropagation(); movePage(i, 'up'); }} className={`p-1 rounded ${activePageId === p.id ? 'text-white dark:text-black' : 'text-ink-300'}`} disabled={i === 0}>
-                      <Icons.ChevronRight size={12} className="-rotate-90" />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); movePage(i, 'down'); }} className={`p-1 rounded ${activePageId === p.id ? 'text-white dark:text-black' : 'text-ink-300'}`} disabled={i === story.pages.length - 1}>
-                      <Icons.ChevronRight size={12} className="rotate-90" />
-                    </button>
-                  </div>
-                </div>
-                <h4 className={`text-sm font-serif font-bold truncate ${activePageId === p.id ? 'text-white dark:text-black' : 'text-ink-900 dark:text-white'}`}>
-                  {p.title}
-                </h4>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className={`text-[8px] font-mono ${activePageId === p.id ? 'text-white/60 dark:text-black/60' : 'text-ink-400'}`}>
-                    {countWords(p.content)} Palabras
-                  </span>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeletePage(p.id); }} className={`p-1 rounded transition-colors ${activePageId === p.id ? 'hover:bg-red-500 text-white/50 dark:text-black/50 hover:text-white' : 'text-ink-200 hover:text-red-500'}`}>
-                    <Icons.Delete size={12} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          </aside>
+        )}
 
-          <div className="p-5 bg-ink-50 dark:bg-ink-950 border-t border-ink-100 dark:border-ink-900 mt-auto">
-             <div className="flex justify-between items-center">
-               <div className="text-[10px] font-mono text-ink-400">TOTAL: <span className="font-bold text-ink-900 dark:text-white">{totalWordCount}</span></div>
-               <div className="text-[10px] font-mono text-ink-400">TIEMPO: <span className="font-bold text-ink-900 dark:text-white">{readingTime}m</span></div>
-             </div>
-          </div>
-        </aside>
-
-        {/* Editor Principal */}
-        <main className="flex-1 p-5 md:p-12 lg:p-20 overflow-y-auto custom-scrollbar bg-white dark:bg-black">
-          <div className="max-w-3xl mx-auto flex flex-col min-h-full">
+        <main className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-1000 ${zenMode ? 'p-10 md:p-32' : 'p-6 md:p-12 lg:p-20'}`}>
+          <div className="max-w-2xl mx-auto flex flex-col min-h-full">
             <input 
-              className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold bg-transparent outline-none mb-8 md:mb-12 text-ink-900 dark:text-white tracking-tight border-none focus:ring-0 p-0 placeholder-ink-100 dark:placeholder-ink-900"
+              className={`font-serif font-bold bg-transparent outline-none mb-12 border-none focus:ring-0 p-0 transition-all ${zenMode ? 'text-4xl md:text-6xl text-center' : 'text-3xl md:text-5xl text-left'}`}
               value={activePage?.title || ''}
-              onChange={(e) => {
-                setIsDirty(true);
-                setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }));
-              }}
+              onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) })); }}
               placeholder="Capítulo..."
             />
             <div
               ref={editorRef}
               contentEditable
-              className="flex-1 w-full bg-transparent outline-none font-serif text-lg md:text-xl lg:text-2xl leading-[1.8] text-ink-800 dark:text-ink-300 min-h-[50vh] pb-32"
+              className={`flex-1 w-full bg-transparent outline-none font-serif leading-[1.8] min-h-[50vh] pb-64 selection:bg-ink-200 dark:selection:bg-ink-700 ${zenMode ? 'text-xl md:text-2xl text-justify' : 'text-lg md:text-xl'}`}
               onInput={handleInput}
               spellCheck={false}
-              data-placeholder="Tu historia comienza aquí..."
+              data-placeholder="Escribe tu historia..."
             />
           </div>
         </main>
 
-        {/* Sidebar Metadatos */}
-        {showMeta && (
-          <aside className="fixed inset-y-0 right-0 w-72 md:w-80 z-50 md:relative border-l border-ink-200 dark:border-ink-800 overflow-y-auto p-6 md:p-8 bg-ink-50 dark:bg-black shadow-2xl animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xs font-black uppercase tracking-widest">Atributos</h3>
-              <button onClick={() => setShowMeta(false)} className="p-2 hover:bg-ink-200 dark:hover:bg-ink-800 rounded-full"><Icons.Back size={18} className="rotate-180" /></button>
+        {/* Biblia del Proyecto */}
+        {showBible && !zenMode && (
+          <aside className="fixed inset-y-0 right-0 w-80 z-50 md:relative border-l border-ink-200 dark:border-ink-800 flex flex-col bg-inherit shadow-2xl animate-in slide-in-from-right">
+            <div className="p-6 border-b border-black/5 flex justify-between items-center">
+              <h3 className="text-xs font-black uppercase tracking-widest">Biblia del Mundo</h3>
+              <button onClick={() => setShowBible(false)}><Icons.Back size={16} className="rotate-180" /></button>
             </div>
-            <div className="space-y-10">
+            <textarea 
+              className="flex-1 p-6 bg-transparent outline-none resize-none font-serif text-sm leading-relaxed"
+              placeholder="Notas de personajes, lugares, tramas..."
+              value={story.bible || ''}
+              onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, bible: e.target.value })); }}
+            />
+          </aside>
+        )}
+
+        {/* Metadatos y Metas */}
+        {showMeta && !zenMode && (
+          <aside className="fixed inset-y-0 right-0 w-80 z-50 md:relative border-l border-ink-200 dark:border-ink-800 overflow-y-auto p-8 bg-inherit shadow-2xl animate-in slide-in-from-right">
+            <div className="flex justify-between mb-10">
+              <h3 className="text-xs font-black uppercase tracking-widest">Ajustes Obra</h3>
+              <button onClick={() => setShowMeta(false)}><Icons.Back size={16} className="rotate-180" /></button>
+            </div>
+            
+            <div className="space-y-8">
               <section>
-                <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Estado</label>
-                <div className="space-y-1.5">
+                <label className="text-[10px] font-mono opacity-50 uppercase block mb-3">Meta de Palabras</label>
+                <div className="flex items-center gap-3">
+                  <Icons.Target size={14} className="opacity-30" />
+                  <input 
+                    type="number"
+                    className="bg-black/5 dark:bg-white/5 border-none rounded-lg px-3 py-2 w-full text-xs font-bold outline-none"
+                    value={story.wordCountGoal}
+                    onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, wordCountGoal: parseInt(e.target.value) || 0 })); }}
+                    placeholder="Ej: 50000"
+                  />
+                </div>
+              </section>
+
+              <section>
+                <label className="text-[10px] font-mono opacity-50 uppercase block mb-3">Estado</label>
+                <div className="grid grid-cols-1 gap-1">
                   {ALL_STATUSES.map(status => (
-                    <button key={status} onClick={() => { setIsDirty(true); setStory(prev => ({ ...prev, status })); }} className={`w-full px-4 py-2.5 text-xs text-left rounded-xl border transition-all flex items-center justify-between ${story.status === status ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-white dark:bg-ink-900 border-ink-200 dark:border-ink-800'}`}>
-                      {status} {story.status === status && <Icons.Check size={10} />}
-                    </button>
-                  ))}
-                </div>
-              </section>
-              <section>
-                <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Sinopsis</label>
-                <textarea 
-                  className="w-full h-32 p-4 text-xs font-serif leading-relaxed bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-2xl outline-none resize-none" 
-                  value={story.synopsis} 
-                  onChange={(e) => {
-                    setIsDirty(true);
-                    setStory(prev => ({ ...prev, synopsis: e.target.value }));
-                  }} 
-                  placeholder="Resumen..." 
-                />
-              </section>
-              <section>
-                <label className="text-[10px] font-mono text-ink-400 uppercase block mb-3">Géneros</label>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_GENRES.map(genre => (
                     <button 
-                      key={genre}
-                      onClick={() => toggleGenre(genre)}
-                      className={`px-2.5 py-1.5 text-[9px] rounded-lg border transition-all ${story.genres.includes(genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-md' : 'bg-white dark:bg-ink-900 border-ink-200 dark:border-ink-800'}`}
+                      key={status} 
+                      onClick={() => { setIsDirty(true); setStory(prev => ({ ...prev, status })); }}
+                      className={`text-left px-4 py-2 text-[10px] rounded-lg transition-all ${story.status === status ? 'bg-ink-900 dark:bg-white text-white dark:text-black font-bold' : 'hover:bg-black/5'}`}
                     >
-                      {genre}
+                      {status}
                     </button>
                   ))}
                 </div>
+              </section>
+
+              <section>
+                <label className="text-[10px] font-mono opacity-50 uppercase block mb-3">Sinopsis</label>
+                <textarea 
+                  className="w-full h-32 p-4 text-xs font-serif leading-relaxed bg-black/5 dark:bg-white/5 rounded-xl outline-none resize-none"
+                  value={story.synopsis}
+                  onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, synopsis: e.target.value })); }}
+                />
               </section>
             </div>
           </aside>
         )}
       </div>
-      
-      <footer className="px-4 py-2 md:py-3 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-black text-[9px] md:text-[10px] font-mono text-ink-400 flex justify-between items-center z-30">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1"><Icons.Pen size={10} /> {currentWordCount} PALABRAS</span>
-          <span className="hidden sm:inline opacity-60">SINC: {lastSaved}</span>
-          {isDirty && <span className="text-amber-500 font-bold animate-pulse">● CAMBIOS SIN GUARDAR</span>}
-        </div>
-        <div className="flex items-center gap-2">
-           <span className="opacity-40 uppercase tracking-tighter hidden xs:inline">Cifrado Local</span>
-           <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>
-        </div>
-      </footer>
+
+      {!zenMode && (
+        <footer className="px-4 py-2 border-t border-ink-100 dark:border-ink-800 text-[9px] font-mono opacity-40 flex justify-between items-center z-30">
+          <div className="flex items-center gap-6">
+            <span className="flex items-center gap-1 uppercase tracking-widest"><Icons.Pen size={10} /> {totalWords} PALABRAS</span>
+            {story.wordCountGoal > 0 && <span>OBJETIVO: {progressPercent.toFixed(1)}%</span>}
+          </div>
+          <div className="flex items-center gap-4">
+             {isDirty && <span className="text-amber-500 animate-pulse font-bold">CAMBIOS PENDIENTES</span>}
+             <span className="uppercase">STUDIO V1.5</span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };
