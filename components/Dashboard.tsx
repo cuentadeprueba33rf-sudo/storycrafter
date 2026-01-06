@@ -14,55 +14,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio }) => {
   const sections = [
     {
       id: 'studio',
-      title: 'Studio Creativo',
-      description: 'Accede a tus proyectos y manuscritos con control absoluto.',
-      icon: <Icons.Pen size={28} />,
+      title: 'Studio',
+      description: 'Gestión de manuscritos.',
+      icon: <Icons.Pen size={16} />,
       action: onEnterStudio,
       primary: true
     },
     {
       id: 'no-ai',
-      title: 'Filosofía Zero-IA',
-      description: 'Defendemos la imperfección humana. Sin algoritmos generativos.',
-      icon: <Icons.NoAI size={28} />,
-      tag: '100% Humano',
+      title: 'Human-First',
+      description: 'Escritura orgánica.',
+      icon: <Icons.NoAI size={16} />,
       action: () => setActiveModal('no-ai')
     },
     {
       id: 'docs',
-      title: 'Documentación',
-      description: 'Guía completa sobre la jerarquía y estructura del estudio.',
-      icon: <Icons.Docs size={28} />,
+      title: 'Estructura',
+      description: 'Jerarquía del taller.',
+      icon: <Icons.Docs size={16} />,
       action: () => setActiveModal('docs')
     },
     {
       id: 'usage',
-      title: 'Guía de Uso',
-      description: 'Aprende atajos y optimiza tu flujo de trabajo editorial.',
-      icon: <Icons.Terminal size={28} />,
+      title: 'Atajos',
+      description: 'Flujo de trabajo.',
+      icon: <Icons.Terminal size={16} />,
       action: () => setActiveModal('usage')
     },
     {
       id: 'updates',
-      title: 'Actualizaciones',
-      description: 'v1.4.2 - Sistema de compartición y corrección de carpetas.',
-      icon: <Icons.Alert size={28} />,
+      title: 'v1.4.2',
+      description: 'Estable.',
+      icon: <Icons.Alert size={16} />,
       notify: true,
       action: () => setActiveModal('updates')
     }
   ];
 
   const Modal = ({ title, children, onClose }: { title: string, children?: React.ReactNode, onClose: () => void }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white/95 backdrop-blur-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[3rem] shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink-950/20 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white/95 dark:bg-ink-900/95 backdrop-blur-2xl w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-black/5 animate-in zoom-in-95 duration-300 overflow-hidden">
         <div className="p-10">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-serif font-bold text-ink-900">{title}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors text-ink-900">
-              <Icons.Back size={20} className="rotate-90" />
+            <h2 className="text-2xl font-serif font-bold text-ink-900 dark:text-white">{title}</h2>
+            <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors">
+              <Icons.ZenClose size={20} />
             </button>
           </div>
-          <div className="prose max-w-none text-ink-600 font-sans leading-relaxed">
+          <div className="prose dark:prose-invert max-w-none text-ink-600 dark:text-ink-400 text-sm leading-relaxed font-serif">
             {children}
           </div>
         </div>
@@ -71,137 +70,156 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio }) => {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-ink-50 p-6 md:p-12 lg:p-20 relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-ink-200/40 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[5%] right-[-10%] w-[50%] h-[50%] bg-ink-300/30 rounded-full blur-[150px] pointer-events-none"></div>
-
-      <div className="max-w-6xl mx-auto w-full flex flex-col h-full relative z-10">
-        {/* Top Header Branding */}
-        <header className="flex justify-between items-start mb-20 md:mb-32">
-          <div className="animate-in slide-in-from-left duration-700">
-            <h1 className="text-6xl md:text-8xl font-serif font-medium tracking-tighter text-ink-900 leading-none">
-              StoryCraft
-            </h1>
-            <p className="mt-6 text-xs font-mono uppercase tracking-[0.6em] text-ink-400">
-              EDITORIAL STUDIO / BY SAM VERCE
-            </p>
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-ink-50 dark:bg-black p-6 md:p-16 lg:p-24 relative overflow-hidden custom-scrollbar">
+      {/* Sutil gradiente de profundidad */}
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(0,0,0,0.02),transparent)] pointer-events-none"></div>
+      
+      <div className="max-w-6xl mx-auto w-full flex flex-col min-h-full relative z-10">
+        
+        {/* Branding de Lujo */}
+        <header className="mb-20 animate-in fade-in slide-in-from-top-4 duration-1000">
+          <div className="flex items-center gap-4 mb-6">
+            <span className="text-[9px] font-mono uppercase tracking-[0.6em] text-ink-400">Artesanía Literaria</span>
+            <div className="flex-1 h-[1px] bg-ink-900 dark:bg-white opacity-5"></div>
           </div>
+          <h1 className="text-6xl md:text-8xl font-serif font-medium tracking-tighter text-ink-900 dark:text-white leading-none">
+            Story<span className="italic font-light opacity-60">Craft</span>
+          </h1>
         </header>
 
-        {/* Hero Area / Intro */}
-        <div className="mb-20 max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <p className="text-2xl md:text-3xl font-serif leading-tight text-ink-800">
-            Escritura pura para autores que dominan su oficio. <span className="text-ink-400">Sin distracciones, sin interferencia algorítmica.</span>
+        {/* Manifiesto Refinado */}
+        <div className="mb-24 max-w-xl animate-in fade-in slide-in-from-left duration-1000 delay-100">
+          <p className="text-xl md:text-2xl font-serif leading-relaxed text-ink-800 dark:text-ink-200">
+            Escritura pura para autores que dominan su oficio. 
+            <span className="block mt-4 text-ink-400 font-sans text-[10px] uppercase tracking-[0.3em] font-black opacity-50">
+              Sin distracciones • Sin algoritmos
+            </span>
           </p>
         </div>
 
-        {/* Navigation Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-          {sections.map((sec) => (
-            <button 
-              key={sec.id}
-              onClick={sec.action}
-              className={`
-                group relative p-10 text-left transition-all duration-500 rounded-[2.8rem] overflow-hidden
-                ${sec.primary 
-                  ? 'bg-ink-900/90 text-white backdrop-blur-2xl border border-white/10 hover:shadow-2xl hover:-translate-y-2' 
-                  : 'bg-white/40 backdrop-blur-2xl border border-white/60 hover:border-ink-300 hover:shadow-2xl hover:-translate-y-1'}
-              `}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-              
-              <div className={`relative z-10 mb-8 flex justify-between items-start ${sec.primary ? 'text-white' : 'text-ink-900'}`}>
-                <div className={`p-3 border rounded-2xl ${sec.primary ? 'border-white/20' : 'border-ink-200'}`}>
-                  {sec.icon}
+        {/* Consola de Herramientas (Cards Micro) */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-[8px] font-black uppercase tracking-[0.4em] text-ink-400">Módulos de Control</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {sections.map((sec) => (
+              <button 
+                key={sec.id}
+                onClick={sec.action}
+                className={`
+                  group relative p-4 text-left transition-all duration-500 rounded-2xl border flex flex-col justify-between h-36
+                  ${sec.primary 
+                    ? 'bg-ink-950 dark:bg-white text-white dark:text-black border-transparent shadow-lg hover:shadow-2xl hover:-translate-y-1' 
+                    : 'bg-white/50 dark:bg-ink-900/20 backdrop-blur-sm border-black/[0.03] dark:border-white/[0.03] hover:border-black/10 dark:hover:border-white/10 hover:-translate-y-0.5'}
+                `}
+              >
+                <div className="flex justify-between items-start">
+                  <div className={`p-1.5 rounded-lg border ${sec.primary ? 'border-white/10 dark:border-black/5' : 'border-black/5 dark:border-white/5 bg-black/[0.01]'}`}>
+                    {sec.icon}
+                  </div>
+                  {sec.notify && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                  )}
                 </div>
-                {sec.tag && (
-                  <span className="text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 border border-current rounded-full opacity-70">
-                    {sec.tag}
-                  </span>
-                )}
-                {sec.notify && (
-                  <span className="relative flex h-3 w-3 mt-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ink-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-ink-500"></span>
-                  </span>
-                )}
-              </div>
-              
-              <h3 className={`relative z-10 text-2xl font-serif font-bold mb-3 ${sec.primary ? 'text-white' : 'text-ink-900'}`}>
-                {sec.title}
-              </h3>
-              <p className={`relative z-10 text-base leading-relaxed ${sec.primary ? 'text-ink-300' : 'text-ink-500'}`}>
-                {sec.description}
-              </p>
+                
+                <div>
+                  <h3 className="text-[11px] font-bold mb-0.5 tracking-tight uppercase">
+                    {sec.title}
+                  </h3>
+                  <p className={`text-[8px] leading-tight opacity-40 font-medium`}>
+                    {sec.description}
+                  </p>
+                </div>
+              </button>
+            ))}
 
-              {sec.primary && (
-                <div className="relative z-10 mt-10 flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-white opacity-60 group-hover:opacity-100 transition-opacity">
-                  Comenzar sesión <Icons.ChevronRight size={14} />
-                </div>
-              )}
-            </button>
-          ))}
+            {/* Slots de Expansión (Look ultra-ligero) */}
+            {[1, 2].map((i) => (
+              <div key={i} className="p-4 rounded-2xl border border-dashed border-black/[0.05] dark:border-white/[0.05] flex flex-col items-center justify-center opacity-10 grayscale">
+                 <Icons.Plus size={12} />
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Branding Footer */}
-        <footer className="mt-auto pt-16 border-t border-ink-200 flex flex-col md:flex-row justify-between items-center gap-8 pb-10">
-          <div className="text-[10px] font-mono text-ink-400 uppercase tracking-[0.4em]">
-            © 2024 SAM VERCE STUDIO. SINCRONIZACIÓN LOCAL ACTIVA.
+        {/* SECCIÓN DE FUTURAS EXTENSIONES (Studio Layers) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-12 border-t border-black/5 dark:border-white/5 animate-in fade-in duration-1000 delay-500">
+          <div className="col-span-1 md:col-span-2 space-y-8">
+            <h3 className="text-[8px] font-black uppercase tracking-[0.4em] text-ink-300">Próximas Capas del Studio</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="group cursor-help">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-ink-300 opacity-20 group-hover:opacity-100 transition-opacity"></div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink-900 dark:text-white">World Builder</h4>
+                </div>
+                <p className="text-[10px] text-ink-400 font-serif leading-relaxed italic pr-8">
+                  Módulo de cartografía léxica y genealogía de personajes. Integración modular en v1.5.
+                </p>
+              </div>
+              <div className="group cursor-help">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-ink-300 opacity-20 group-hover:opacity-100 transition-opacity"></div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink-900 dark:text-white">Timeline Lab</h4>
+                </div>
+                <p className="text-[10px] text-ink-400 font-serif leading-relaxed italic pr-8">
+                  Cronologías no lineales con visualización de hilos narrativos. Desarrollo activo.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-10 text-[10px] font-mono text-ink-300 uppercase tracking-widest">
-            <span className="hover:text-ink-900 cursor-pointer transition-colors">Privacidad</span>
-            <span className="hover:text-ink-900 cursor-pointer transition-colors">Editorial Labs</span>
-            <span>v1.4.2 STABLE</span>
+          
+          <div className="flex flex-col md:items-end justify-end gap-6 border-l md:border-l-0 md:border-t-0 border-black/5 pl-6 md:pl-0">
+             <div className="flex flex-col md:items-end gap-1">
+               <span className="text-[8px] font-mono text-ink-300 uppercase tracking-[0.2em]">Estado del Kernel</span>
+               <span className="text-[9px] font-black text-ink-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                 <span className="w-1 h-1 rounded-full bg-green-500"></span> 
+                 v1.4.2 ESTABLE
+               </span>
+             </div>
+             <div className="flex gap-4 text-[8px] font-mono text-ink-200 uppercase tracking-widest">
+              <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Lab</span>
+              <span className="hover:text-ink-900 dark:hover:text-white cursor-pointer transition-colors">Docs</span>
+            </div>
           </div>
-        </footer>
+        </div>
       </div>
 
-      {/* Modals Content */}
+      {/* Modales con Refinamiento Visual */}
       {activeModal === 'docs' && (
-        <Modal title="Documentación" onClose={() => setActiveModal(null)}>
+        <Modal title="Sistema de Studio" onClose={() => setActiveModal(null)}>
           <div className="space-y-6">
-            <section>
-              <h4 className="text-ink-900 font-bold text-lg mb-2">Estructura de Manuscritos</h4>
-              <p>StoryCraft utiliza un sistema jerárquico basado en Carpetas y Proyectos. Cada Proyecto se divide en Capítulos (Páginas), permitiendo una organización fluida de obras extensas.</p>
-            </section>
-            <section>
-              <h4 className="text-ink-900 font-bold text-lg mb-2">Gestión de Metadatos</h4>
-              <p>Cada historia contiene metadatos editables como Sinopsis, Géneros y Estado (Borrador, En Progreso, Finalizado). Estos se utilizan para filtrar y organizar tu librería profesionalmente.</p>
-            </section>
+            <p className="text-sm">StoryCraft utiliza un paradigma de <strong>Celdas de Escritura</strong>. Cada proyecto es un ecosistema modular diseñado para la longevidad digital.</p>
+            <p className="text-xs opacity-60">La arquitectura actual permite la gestión de manuscritos complejos mediante una jerarquía plana pero escalable.</p>
           </div>
         </Modal>
       )}
 
       {activeModal === 'usage' && (
-        <Modal title="Guía de Uso y Atajos" onClose={() => setActiveModal(null)}>
+        <Modal title="Manual de Operaciones" onClose={() => setActiveModal(null)}>
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border border-ink-100 rounded-2xl bg-black/5">
-                <span className="text-xs font-mono text-ink-400 block mb-1">ACCION</span>
-                <span className="text-ink-900 font-bold">Autoguardado</span>
-              </div>
-              <div className="p-4 border border-ink-100 rounded-2xl bg-black/5">
-                <span className="text-xs font-mono text-ink-400 block mb-1">FRECUENCIA</span>
-                <span className="text-ink-900 font-bold">Cada 1 segundo</span>
-              </div>
+            <div className="p-4 border border-black/5 rounded-2xl bg-black/[0.01]">
+              <h4 className="text-[10px] font-black uppercase tracking-widest mb-3">Modo Zen</h4>
+              <p className="text-xs">Altamente recomendado para primeras versiones. Pulsa el icono de expansión para entrar en el estado de flujo absoluto.</p>
             </div>
-            <section>
-              <h4 className="text-ink-900 font-bold text-lg mb-2">Atajos de Teclado</h4>
-              <ul className="list-disc pl-5 space-y-2">
-                <li><kbd className="px-2 py-1 bg-ink-100 rounded">Esc</kbd> - Cerrar editor o modales.</li>
-              </ul>
-            </section>
+            <div className="p-4 border border-black/5 rounded-2xl bg-black/[0.01]">
+              <h4 className="text-[10px] font-black uppercase tracking-widest mb-3">Sync Local</h4>
+              <p className="text-xs">Tus datos nunca abandonan este navegador. El guardado es instantáneo y persistente mediante el motor de base de datos local.</p>
+            </div>
           </div>
         </Modal>
       )}
 
       {activeModal === 'no-ai' && (
         <Modal title="Manifiesto Humano" onClose={() => setActiveModal(null)}>
-          <div className="space-y-6">
-            <p className="text-xl font-serif italic text-ink-900">"La literatura es el arte de la imperfección deliberada."</p>
-            <p>En un mundo saturado de contenido generado por máquinas, StoryCraft Studio se posiciona como un refugio. Creemos que la IA diluye la voz del autor y homogeniza la creatividad.</p>
-            <p>Aquí, cada palabra es tuya. Cada error es un rastro de tu humanidad.</p>
+          <div className="space-y-8 text-center py-4">
+            <p className="text-2xl font-serif italic text-ink-900 dark:text-white leading-snug">
+              "La literatura es la última trinchera de la subjetividad humana."
+            </p>
+            <p className="text-xs uppercase tracking-[0.2em] opacity-50">
+              StoryCraft Studio rechaza cualquier forma de asistencia algorítmica.<br/>Protegemos tu voz original.
+            </p>
           </div>
         </Modal>
       )}
