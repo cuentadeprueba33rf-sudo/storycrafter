@@ -124,6 +124,21 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
+  const handleCreatePage = () => {
+    const newPage: Page = {
+      id: generateId(ID_PREFIX.PAGE),
+      title: `Capítulo ${story.pages.length + 1}`,
+      content: '<p><br></p>',
+      order: story.pages.length
+    };
+    setStory(prev => ({
+      ...prev,
+      pages: [...prev.pages, newPage]
+    }));
+    setActivePageId(newPage.id);
+    setIsDirty(true);
+  };
+
   const startSprint = (minutes: number) => {
     setSprintTime(minutes * 60);
     setIsSprintActive(true);
@@ -145,7 +160,6 @@ export const Editor: React.FC<EditorProps> = ({
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Fix: implement togglePlay function for soundtrack
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -156,7 +170,6 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
-  // Fix: implement audio upload handler
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -182,13 +195,20 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
+  const getPanelBg = () => {
+    switch(theme) {
+      case 'DARK': return 'bg-ink-950';
+      case 'SEPIA': return 'bg-[#ebe3cf]';
+      default: return 'bg-white';
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${getThemeClasses()}`}>
       
       {/* Typewriter sound source */}
       <audio ref={typewriterAudioRef} src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto" />
 
-      {/* Fix: add hidden file input for audio upload */}
       <input 
         type="file" 
         ref={audioInputRef} 
@@ -196,6 +216,14 @@ export const Editor: React.FC<EditorProps> = ({
         accept="audio/*" 
         onChange={handleAudioUpload} 
       />
+
+      {/* Backdrop para cerrar en móviles */}
+      {showInspector && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[110] lg:hidden animate-in fade-in duration-300"
+          onClick={() => setShowInspector(false)}
+        />
+      )}
 
       {!zenMode && (
         <header className="flex items-center justify-between px-6 py-3 border-b border-black/5 z-[100] shrink-0 bg-inherit">
@@ -217,9 +245,9 @@ export const Editor: React.FC<EditorProps> = ({
             
             <button 
               onClick={() => setShowInspector(!showInspector)} 
-              className={`p-2 rounded-lg flex items-center gap-2 transition-all ${showInspector ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg' : 'hover:bg-black/5 text-ink-400'}`}
+              className={`p-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 ${showInspector ? 'bg-amber-500 text-white shadow-lg scale-105' : 'hover:bg-black/5 text-ink-400'}`}
+              title={showInspector ? "Cerrar Herramientas" : "Abrir Herramientas"}
             >
-              {/* Fix: Icons.Sparkles -> Icons.Magic */}
               <Icons.Magic size={18} />
               <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Herramientas</span>
             </button>
@@ -250,17 +278,56 @@ export const Editor: React.FC<EditorProps> = ({
               />
             </div>
           </div>
+
+          {/* GESTOR DE CAPÍTULOS INFERIOR */}
+          {!zenMode && (
+            <div className="shrink-0 border-t border-black/5 p-4 flex items-center justify-center bg-inherit z-50">
+              <div className="max-w-4xl w-full flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+                {story.pages.sort((a,b) => a.order - b.order).map((p, idx) => (
+                  <button 
+                    key={p.id}
+                    onClick={() => setActivePageId(p.id)}
+                    className={`
+                      shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                      ${activePageId === p.id 
+                        ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' 
+                        : 'bg-black/5 hover:bg-black/10 text-ink-400'}
+                    `}
+                  >
+                    <span className="opacity-40 mr-2">{idx + 1}.</span>
+                    {p.title || 'Escena'}
+                  </button>
+                ))}
+                <button 
+                  onClick={handleCreatePage}
+                  className="shrink-0 w-10 h-10 flex items-center justify-center bg-amber-500 text-white rounded-xl hover:scale-110 active:scale-95 transition-all shadow-md"
+                  title="Nueva Escena"
+                >
+                  <Icons.Plus size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </main>
 
-        <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'} bg-white dark:bg-ink-950 border-l border-black/5 shadow-2xl`}>
+        <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0 shadow-2xl' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'} ${getPanelBg()} border-l border-black/5`}>
           <div className="flex flex-col h-full w-full overflow-hidden">
             <div className="p-6 border-b border-black/5">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Módulo de Inspiración</h2>
+                <button 
+                  onClick={() => setShowInspector(false)} 
+                  className="p-2 hover:bg-black/5 rounded-full transition-colors group"
+                  title="Cerrar Panel"
+                >
+                  <Icons.X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+                </button>
+              </div>
               <div className="grid grid-cols-5 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
                 {(['metas', 'biblia', 'casting', 'musica', 'sprint'] as InspectorTab[]).map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 flex items-center justify-center rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm' : 'opacity-40'}`}>
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 flex items-center justify-center rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-40 hover:opacity-100'}`}>
                     {tab === 'musica' && <Icons.Music size={14} />}
                     {tab === 'sprint' && <Icons.Zap size={14} />}
-                    {/* Fix: Icons.Users -> Icons.Characters */}
                     {tab === 'casting' && <Icons.Characters size={14} />}
                     {tab === 'biblia' && <Icons.Bible size={14} />}
                     {tab === 'metas' && <Icons.Target size={14} />}
@@ -303,7 +370,6 @@ export const Editor: React.FC<EditorProps> = ({
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${story.typewriterEnabled ? 'border-amber-500 bg-amber-500/5 text-amber-600' : 'border-black/5 bg-black/5 opacity-40'}`}
                     >
                        <span className="text-[10px] font-black uppercase tracking-widest">Máquina de Escribir</span>
-                       {/* Fix: Icons.ZapOff -> Icons.NoAI */}
                        {story.typewriterEnabled ? <Icons.Volume size={14} /> : <Icons.NoAI size={14} />}
                     </button>
                   </div>
@@ -332,17 +398,32 @@ export const Editor: React.FC<EditorProps> = ({
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Disc size={14} /> Atmósfera Local</label>
                     {!story.soundtrackData ? (
-                      <button onClick={() => audioInputRef.current?.click()} className="w-full flex items-center justify-center gap-3 px-6 py-8 border-2 border-dashed border-black/10 rounded-[2rem] opacity-40"><Icons.Upload size={20} /></button>
+                      <button onClick={() => audioInputRef.current?.click()} className="w-full flex items-center justify-center gap-3 px-6 py-8 border-2 border-dashed border-black/10 rounded-[2rem] opacity-40 hover:opacity-60 transition-opacity"><Icons.Upload size={20} /></button>
                     ) : (
                       <div className="p-6 bg-ink-900 dark:bg-white rounded-[2rem] shadow-xl text-center space-y-4">
                         <Icons.Music size={24} className="mx-auto text-white dark:text-black" />
-                        <button onClick={togglePlay} className="w-12 h-12 bg-white dark:bg-black text-black dark:text-white rounded-full mx-auto flex items-center justify-center shadow-lg">
+                        <button onClick={togglePlay} className="w-12 h-12 bg-white dark:bg-black text-black dark:text-white rounded-full mx-auto flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all">
                            {isPlaying ? <Icons.Pause size={20} fill="currentColor" /> : <Icons.Play size={20} fill="currentColor" className="ml-1" />}
                         </button>
                       </div>
                     )}
                     <audio ref={audioRef} src={story.soundtrackData} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'casting' && (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                   <label className="text-[10px] font-black uppercase tracking-widest opacity-40 flex items-center gap-2"><Icons.Characters size={14} /> Reparto</label>
+                   {story.characters?.map(char => (
+                      <div key={char.id} className="flex items-center gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                        <img src={char.image} className="w-10 h-10 rounded-full object-cover" />
+                        <span className="text-[10px] font-black uppercase tracking-widest truncate">{char.name}</span>
+                      </div>
+                   ))}
+                   {(!story.characters || story.characters.length === 0) && (
+                     <div className="py-8 text-center text-[10px] font-serif italic opacity-40">Sin actores asignados</div>
+                   )}
                 </div>
               )}
             </div>
