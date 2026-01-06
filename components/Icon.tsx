@@ -56,7 +56,8 @@ import {
   Eye,
   Heart,
   MessageSquare,
-  Send
+  Send,
+  LogOut
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -129,5 +130,6 @@ export const Icons = {
   Eye,
   Heart,
   Comment: MessageSquare,
-  Publish: Send
+  Publish: Send,
+  Logout: LogOut
 };
