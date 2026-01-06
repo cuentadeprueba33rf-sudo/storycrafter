@@ -70,7 +70,7 @@ function App() {
   };
 
   const handleCreateStory = () => {
-    const title = prompt("Título de la historia:") || "Sin Título";
+    const title = prompt("Título del nuevo manuscrito:") || "Manuscrito Sin Título";
     const newStory: Story = {
       id: generateId(ID_PREFIX.STORY),
       title: title.trim(),
@@ -82,10 +82,10 @@ function App() {
       folderId: currentFolderId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'I', content: '', order: 0 }],
+      pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'Capítulo I', content: '', order: 0 }],
       characters: [],
       isPublished: false,
-      authorName: getDisplayName()
+      authorName: getDisplayName() // Inicialmente usa su nombre de pluma
     };
     setData(prev => ({ ...prev, stories: [newStory, ...prev.stories] }));
     setActiveStoryId(newStory.id);
@@ -99,11 +99,13 @@ function App() {
        return; 
     }
 
+    // Actualizamos localmente
     setData(prev => ({
       ...prev,
       stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
     }));
 
+    // Sincronización con Comunidad
     if (session) {
       if (updatedStory.isPublished) {
         try {
@@ -111,7 +113,7 @@ function App() {
             id: updatedStory.id,
             title: updatedStory.title,
             synopsis: updatedStory.synopsis,
-            author_name: updatedStory.authorName, // Usar el nombre de pluma o Anónimo elegido
+            author_name: updatedStory.authorName, // Puede ser "Anónimo" o su Nombre de Pluma
             genres: updatedStory.genres,
             status: updatedStory.status,
             content_json: updatedStory.pages,
@@ -121,10 +123,10 @@ function App() {
           };
           await supabase.from('public_stories').upsert(payload, { onConflict: 'id' });
         } catch (e) {
-          console.error("Fallo de publicación:", e);
+          console.error("Error sincronizando con comunidad:", e);
         }
       } else {
-        // Si no está marcada como publicada, nos aseguramos de borrarla del feed si existía
+        // Si ya no está publicada, borrar del feed público si existía
         try {
           await supabase.from('public_stories').delete().eq('id', updatedStory.id);
         } catch (e) {}
@@ -141,9 +143,9 @@ function App() {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-ink-50 dark:bg-black text-ink-900 dark:text-white">
         <div className="flex flex-col items-center animate-pulse">
-          <div className="mb-6 p-4 border border-ink-200 dark:border-ink-800 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
+          <div className="mb-6 p-6 border border-ink-200 dark:border-ink-800 rounded-[2rem]"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Firmando Manuscritos...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.5em] text-ink-400">Firmando Manuscritos...</div>
         </div>
       </div>
     );
@@ -173,7 +175,7 @@ function App() {
             stories={data.stories} folders={data.folders} currentFolderId={currentFolderId}
             onNavigateFolder={setCurrentFolderId} 
             onCreateFolder={() => {
-              const name = prompt("Nombre:");
+              const name = prompt("Nombre de la carpeta:");
               if (!name) return;
               setData(prev => ({ ...prev, folders: [...prev.folders, { id: generateId(ID_PREFIX.FOLDER), name, parentId: currentFolderId, createdAt: Date.now() }] }));
             }} 
@@ -184,14 +186,25 @@ function App() {
               setView('EDITOR'); 
             }}
             onDeleteStory={(id) => {
-              if(confirm("¿Seguro que quieres borrar este manuscrito?")) {
+              if(confirm("¿Estás seguro de que deseas eliminar permanentemente este manuscrito? Esta acción no se puede deshacer.")) {
                 setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }));
                 supabase.from('public_stories').delete().eq('id', id).then(() => {});
               }
             }}
-            onDeleteFolder={(id) => setData(prev => ({ ...prev, folders: prev.folders.filter(f => f.id !== id) }))}
+            onDeleteFolder={(id) => {
+              if(confirm("¿Borrar carpeta? Los manuscritos dentro se mantendrán en la raíz.")) {
+                setData(prev => ({ 
+                  ...prev, 
+                  folders: prev.folders.filter(f => f.id !== id),
+                  stories: prev.stories.map(s => s.folderId === id ? { ...s, folderId: null } : s)
+                }));
+              }
+            }}
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
-            onShareStory={(id) => alert("Enlace copiado")}
+            onShareStory={(id) => {
+              navigator.clipboard.writeText(`${window.location.origin}?story=${id}`);
+              alert("Enlace del manuscrito copiado al portapapeles.");
+            }}
             onBackHome={() => setView('HOME')}
           />
         )}
@@ -214,7 +227,9 @@ function App() {
               setCommunityStory(null);
               setView(communityStory ? 'FEED' : 'LIBRARY');
             }} 
-            onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
+            onShare={() => alert("Función de compartir activada.")} 
+            theme={editorTheme} 
+            onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
             readOnly={!!communityStory}
