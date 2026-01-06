@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>StoryCraft Studio</title>
+    <title>StoryCraft Studio | Professional Workspace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -13,7 +13,7 @@
           extend: {
             colors: {
               ink: {
-                50: '#fafafa',
+                50: '#faf9f6', /* Eggshell white */
                 100: '#f4f4f5',
                 200: '#e4e4e7',
                 300: '#d4d4d8',
@@ -22,8 +22,8 @@
                 600: '#52525b',
                 700: '#3f3f46',
                 800: '#27272a',
-                900: '#18181b',
-                950: '#09090b',
+                900: '#121214', /* Deep ink */
+                950: '#0a0a0b',
               }
             },
             fontFamily: {
@@ -36,60 +36,52 @@
       }
     </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
       
-      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
-      .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+      ::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.3); border-radius: 10px; }
+      .dark ::-webkit-scrollbar-thumb { background: rgba(63, 63, 70, 0.3); }
       
-      body { font-feature-settings: "ss01", "cv01"; }
-      #root { min-height: 100vh; }
+      body { font-feature-settings: "ss01", "cv01"; text-rendering: optimizeLegibility; }
+      #root { min-height: 100vh; position: relative; z-index: 1; }
+
+      /* Grain Texture Overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+        opacity: 0.04;
+        pointer-events: none;
+        z-index: 9999;
+      }
+      .dark body::before { opacity: 0.07; filter: invert(1); }
 
       [contenteditable]:empty:before {
         content: attr(data-placeholder);
         color: #d4d4d8;
         cursor: text;
       }
-      .dark [contenteditable]:empty:before {
-        color: #3f3f46;
-      }
+      .dark [contenteditable]:empty:before { color: #3f3f46; }
 
-      /* Estilos para el contenido enriquecido */
-      [contenteditable] b, [contenteditable] strong { font-weight: 700; }
-      [contenteditable] i, [contenteditable] em { font-style: italic; }
-      [contenteditable] u { text-decoration: underline; }
       [contenteditable] p { margin-bottom: 1.5rem; position: relative; min-height: 1.5em; }
       
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-      /* Estilos para el Casting al Inicio del Párrafo */
-      .char-mention-badge {
-        display: inline-block;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        object-fit: cover;
-        vertical-align: middle;
-        margin-right: 6px;
-        border: 1px solid rgba(0,0,0,0.1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        opacity: 0.9;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        filter: grayscale(0.3);
-        user-select: none;
-        pointer-events: auto;
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 0, 0, 0.05);
       }
-      .dark .char-mention-badge {
-        border-color: rgba(255,255,255,0.1);
-      }
-      .char-mention-badge:hover {
-        opacity: 1;
-        transform: scale(1.4);
-        filter: grayscale(0);
-        z-index: 10;
-        margin-right: 10px;
+      .dark .glass-card {
+        background: rgba(18, 18, 20, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
     </style>
   <script type="importmap">
