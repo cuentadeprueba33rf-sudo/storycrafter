@@ -22,7 +22,7 @@ function App() {
   const [data, setData] = useState<AppData>({ stories: [], folders: [], cloudImages: [] });
   const [view, setView] = useState<ViewMode>('HOME');
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
-  const [communityStory, setCommunityStory] = useState<Story | null>(null); // Nuevo: Para historias del feed
+  const [communityStory, setCommunityStory] = useState<Story | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [editorTheme, setEditorTheme] = useState<EditorTheme>('LIGHT');
   const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +62,8 @@ function App() {
   }, [view, editorTheme]);
 
   const getDisplayName = () => {
-    return session?.user?.user_metadata?.display_name || "Autor Anónimo";
+    // Prioridad absoluta al nombre de pluma guardado en el registro
+    return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Escritor";
   };
 
   const handleUpdateCloud = (cloudImages: CloudImage[]) => {
@@ -94,28 +95,29 @@ function App() {
   };
 
   const handleSaveStory = useCallback(async (updatedStory: Story) => {
-    // Si estamos editando una historia de la comunidad, no la guardamos en local por defecto 
-    // a menos que queramos implementar una función de "clonar"
     if (communityStory && updatedStory.id === communityStory.id) {
        setCommunityStory(updatedStory);
        return; 
     }
 
+    // Actualizamos localmente el autor por si acaso cambió
+    const finalStory = { ...updatedStory, authorName: getDisplayName() };
+
     setData(prev => ({
       ...prev,
-      stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
+      stories: prev.stories.map(s => s.id === updatedStory.id ? finalStory : s)
     }));
 
-    if (updatedStory.isPublished && session) {
+    if (finalStory.isPublished && session) {
       try {
         const payload = {
-          id: updatedStory.id,
-          title: updatedStory.title,
-          synopsis: updatedStory.synopsis,
-          author_name: getDisplayName(),
-          genres: updatedStory.genres,
-          status: updatedStory.status,
-          content_json: updatedStory.pages,
+          id: finalStory.id,
+          title: finalStory.title,
+          synopsis: finalStory.synopsis,
+          author_name: getDisplayName(), // Enviar el nombre real de registro a la DB pública
+          genres: finalStory.genres,
+          status: finalStory.status,
+          content_json: finalStory.pages,
           updated_at: new Date().toISOString(),
           user_id: session.user.id,
           is_admin: isAdmin
@@ -125,9 +127,9 @@ function App() {
           .from('public_stories')
           .upsert(payload, { onConflict: 'id' });
 
-        if (error) console.error("Error Supabase:", error);
+        if (error) console.error("Error al publicar en feed:", error);
       } catch (e) {
-        console.error("Error de red Supabase:", e);
+        console.error("Fallo de conexión:", e);
       }
     }
   }, [session, isAdmin, communityStory]);
@@ -143,13 +145,12 @@ function App() {
         <div className="flex flex-col items-center animate-pulse">
           <div className="mb-6 p-4 border border-ink-200 dark:border-ink-800 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Estudio Creativo...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Firmando Manuscritos...</div>
         </div>
       </div>
     );
   }
 
-  // Lógica de selección de historia activa: Prioriza la de la comunidad si se viene del Feed
   const activeStory = communityStory || data.stories.find(s => s.id === activeStoryId);
 
   return (
@@ -187,7 +188,7 @@ function App() {
             onDeleteStory={(id) => setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }))}
             onDeleteFolder={(id) => setData(prev => ({ ...prev, folders: prev.folders.filter(f => f.id !== id) }))}
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
-            onShareStory={(id) => alert("Enlace compartido")}
+            onShareStory={(id) => alert("Enlace copiado")}
             onOpenFeed={() => setView('FEED')}
           />
         )}
@@ -213,7 +214,6 @@ function App() {
             onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
-            isAdmin={isAdmin}
           />
         )}
       </div>

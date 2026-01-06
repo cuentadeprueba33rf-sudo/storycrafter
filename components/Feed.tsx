@@ -88,7 +88,7 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdm
            <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-300 group-focus-within:text-amber-500 transition-colors" size={14} />
            <input 
              type="text" 
-             placeholder="Buscar historias..."
+             placeholder="Buscar historias o autores..."
              value={filter}
              onChange={(e) => setFilter(e.target.value)}
              className="w-full pl-11 pr-4 py-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl md:rounded-2xl text-xs md:text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-all placeholder:opacity-30"
@@ -124,62 +124,66 @@ export const Feed: React.FC<FeedProps> = ({ onBack, onReadStory, supabase, isAdm
                 }}
                 className={`group relative bg-white dark:bg-zinc-900/40 rounded-[1.5rem] md:rounded-[2.5rem] border transition-all duration-500 overflow-hidden hover:shadow-xl flex flex-col ${story.is_admin ? 'border-amber-500/20' : 'border-black/5 dark:border-white/5'}`}
               >
-                {/* Cabecera del Autor */}
-                <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between">
+                {/* Cabecera del Autor - EL NOMBRE DE PLUMA ES EL PROTAGONISTA */}
+                <div className="px-6 py-4 md:px-8 md:py-6 flex items-center justify-between border-b border-black/[0.03] dark:border-white/[0.03]">
                   <div className="flex items-center gap-3 md:gap-4">
-                    <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-serif text-sm md:text-lg font-black shadow-lg ${story.is_admin ? 'bg-gradient-to-br from-amber-400 to-amber-600' : 'bg-ink-900 dark:bg-zinc-800'}`}>
-                      {story.author_name?.[0] || 'A'}
+                    {/* Avatar con la inicial del Nombre de Pluma */}
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-serif text-base md:text-lg font-black shadow-lg ${story.is_admin ? 'bg-gradient-to-br from-amber-400 to-amber-600' : 'bg-ink-900 dark:bg-zinc-700'}`}>
+                      {(story.author_name || "E")[0].toUpperCase()}
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-ink-900 dark:text-white">
-                          {story.author_name || 'Anónimo'}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] md:text-[13px] font-black uppercase tracking-[0.15em] text-ink-900 dark:text-white leading-none">
+                          {story.author_name || 'Escritor Misterioso'}
                         </span>
-                        {story.is_admin && <Icons.Check size={10} className="text-amber-500" strokeWidth={5} />}
+                        {story.is_admin && <Icons.Check size={11} className="text-amber-500" strokeWidth={5} />}
                       </div>
-                      <span className="text-[8px] font-mono opacity-40 uppercase tracking-widest">Hace poco</span>
+                      <span className="text-[8px] font-mono opacity-40 uppercase tracking-[0.2em] mt-1 block">Firma Verificada</span>
                     </div>
+                  </div>
+                  <div className="opacity-20 hover:opacity-100 transition-opacity">
+                    <Icons.More size={18} />
                   </div>
                 </div>
 
-                {/* Contenido */}
-                <div className="px-6 md:px-10 pb-2 space-y-2 md:space-y-4">
-                  <h2 className="text-xl md:text-4xl font-serif font-black italic leading-tight text-ink-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                {/* Contenido de la Historia */}
+                <div className="px-6 md:px-10 py-6 md:py-8 space-y-3 md:space-y-4">
+                  <h2 className="text-2xl md:text-4xl font-serif font-black italic leading-tight text-ink-900 dark:text-white group-hover:text-amber-500 transition-colors">
                     {story.title}
                   </h2>
-                  <p className="text-xs md:text-base font-serif italic text-ink-500 dark:text-zinc-400 leading-relaxed line-clamp-2 md:line-clamp-3">
-                    {story.synopsis || "Una historia que aguarda ser descubierta en la profundidad de la biblioteca comunitaria."}
+                  <p className="text-sm md:text-base font-serif italic text-ink-500 dark:text-zinc-400 leading-relaxed line-clamp-2 md:line-clamp-4">
+                    {story.synopsis || "Un fragmento de alma depositado en esta biblioteca digital, esperando ser leído."}
                   </p>
                 </div>
 
-                {/* Footer Interacciones */}
-                <div className="px-6 py-4 md:px-8 md:py-6 mt-2 border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] flex items-center justify-between">
+                {/* Footer de Interacción */}
+                <div className="px-6 py-4 md:px-8 md:py-6 mt-auto border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] flex items-center justify-between">
                   <div className="flex items-center gap-4 md:gap-6">
                     <button 
                       onClick={(e) => toggleLike(e, story.id)}
                       className={`flex items-center gap-2 group/btn transition-all ${likedStories.has(story.id) ? 'text-red-500' : 'text-ink-400 hover:text-red-500'}`}
                     >
-                      <div className={`p-2 rounded-lg md:p-2.5 md:rounded-xl transition-all ${likedStories.has(story.id) ? 'bg-red-500/10 scale-110' : 'bg-black/5 dark:bg-white/5'}`}>
-                        <Icons.Heart size={16} fill={likedStories.has(story.id) ? "currentColor" : "none"} className="md:w-[18px] md:h-[18px]" />
+                      <div className={`p-2.5 rounded-xl transition-all ${likedStories.has(story.id) ? 'bg-red-500/10 scale-110' : 'bg-black/5 dark:bg-white/5 group-hover/btn:bg-red-500/5'}`}>
+                        <Icons.Heart size={18} fill={likedStories.has(story.id) ? "currentColor" : "none"} />
                       </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest">{likedStories.has(story.id) ? 1 : 0}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{likedStories.has(story.id) ? 1 : 0}</span>
                     </button>
 
                     <div className="flex items-center gap-2 text-ink-400">
-                      <div className="p-2 rounded-lg md:p-2.5 md:rounded-xl bg-black/5 dark:bg-white/5">
-                        <Icons.Comment size={16} className="md:w-[18px] md:h-[18px]" />
+                      <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5">
+                        <Icons.Comment size={18} />
                       </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest">0</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">0</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
                     <div className="hidden xs:flex flex-col items-end">
-                      <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">LECTURA</span>
-                      <span className="text-[9px] font-mono font-bold text-ink-900 dark:text-white">{calculateReadTime(story.content_json)}</span>
+                      <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">LECTURA</span>
+                      <span className="text-[10px] font-mono font-bold text-ink-900 dark:text-white">{calculateReadTime(story.content_json)}</span>
                     </div>
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-ink-900 dark:bg-white text-white dark:text-black flex items-center justify-center shadow-lg">
-                      <Icons.ChevronRight size={16} />
+                    <div className="w-10 h-10 rounded-xl bg-ink-900 dark:bg-white text-white dark:text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Icons.ChevronRight size={18} />
                     </div>
                   </div>
                 </div>
