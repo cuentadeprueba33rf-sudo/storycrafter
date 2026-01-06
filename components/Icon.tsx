@@ -39,7 +39,10 @@ import {
   Image as ImageIcon,
   UserPlus,
   X,
-  Sparkles
+  Sparkles,
+  Cloud,
+  Download,
+  UploadCloud
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -95,5 +98,8 @@ export const Icons = {
   Image: ImageIcon,
   UserPlus,
   X,
-  Magic: Sparkles
+  Magic: Sparkles,
+  Cloud,
+  Download,
+  Upload: UploadCloud
 };

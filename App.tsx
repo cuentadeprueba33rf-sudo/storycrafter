@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { loadData, saveData, generateId, AppData } from './utils/storage';
-import { Story, Folder, ViewMode, Genre, StoryStatus, EditorTheme } from './types';
+import { Story, Folder, ViewMode, Genre, StoryStatus, EditorTheme, CloudImage } from './types';
 import { ID_PREFIX } from './constants';
 import { Library } from './components/Library';
 import { Editor } from './components/Editor';
@@ -9,7 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { Icons } from './components/Icon';
 
 function App() {
-  const [data, setData] = useState<AppData>({ stories: [], folders: [] });
+  const [data, setData] = useState<AppData>({ stories: [], folders: [], cloudImages: [] });
   const [view, setView] = useState<ViewMode>('HOME');
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -34,6 +34,10 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [view, editorTheme]);
+
+  const handleUpdateCloud = (cloudImages: CloudImage[]) => {
+    setData(prev => ({ ...prev, cloudImages }));
+  };
 
   const handleCreateFolder = () => {
     const name = prompt("Nombre de la nueva carpeta:");
@@ -78,6 +82,7 @@ function App() {
   const handleDeleteFolder = (id: string) => {
     if (!window.confirm("¿Eliminar carpeta y desvincular historias?")) return;
     setData(prev => ({
+      ...prev,
       folders: prev.folders.filter(f => f.id !== id),
       stories: prev.stories.map(s => s.folderId === id ? { ...s, folderId: null } : s)
     }));
@@ -99,7 +104,7 @@ function App() {
         <div className="flex flex-col items-center animate-pulse">
           <div className="mb-6 p-4 border border-ink-200 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Preparando tu casting...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Preparando tu nube...</div>
         </div>
       </div>
     );
@@ -109,21 +114,13 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-ink-50">
-      {view !== 'HOME' && view !== 'EDITOR' && (
-        <aside className="hidden lg:flex w-16 flex-col items-center py-8 bg-white border-r border-ink-200 z-30">
-          <div className="mb-10 p-2 text-ink-900 cursor-pointer hover:rotate-12 transition-transform" onClick={() => setView('HOME')}><Icons.Home size={22} /></div>
-          <div className="flex-1 flex flex-col gap-8">
-             <button onClick={() => setView('LIBRARY')} className={`p-2 rounded-xl transition-all ${view === 'LIBRARY' ? 'text-ink-900 bg-ink-100 shadow-inner' : 'text-ink-300'}`}><Icons.Grid size={22} /></button>
-          </div>
-          <div className="mt-auto writing-vertical-lr text-[8px] font-mono uppercase tracking-widest text-ink-300 rotate-180 py-4">STORYCRAFT PRO</div>
-        </aside>
-      )}
-
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         {view === 'HOME' && (
           <Dashboard 
             onEnterStudio={() => setView('LIBRARY')} 
-            onEnterCharacters={() => setView('LIBRARY')} // Redirigir a biblioteca para seleccionar historia
+            onEnterCharacters={() => setView('LIBRARY')}
+            cloudImages={data.cloudImages}
+            onUpdateCloud={handleUpdateCloud}
           />
         )}
         {view === 'LIBRARY' && (
@@ -138,6 +135,7 @@ function App() {
           <Editor 
             story={activeStory} onSave={handleSaveStory} onClose={() => setView('LIBRARY')} 
             onShare={() => handleShareStory(activeStory.id)} theme={editorTheme} onChangeTheme={setEditorTheme}
+            cloudImages={data.cloudImages}
           />
         )}
       </div>

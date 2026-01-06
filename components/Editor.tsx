@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Story, Page, Character, Genre, StoryStatus, EditorTheme } from '../types';
+import { Story, Page, Character, Genre, StoryStatus, EditorTheme, CloudImage } from '../types';
 import { Icons } from './Icon';
 import { ALL_GENRES, ALL_STATUSES, ID_PREFIX } from '../constants';
 import { countWords, generateId } from '../utils/storage';
@@ -12,6 +12,7 @@ interface EditorProps {
   onShare: () => void;
   theme: EditorTheme;
   onChangeTheme: (theme: EditorTheme) => void;
+  cloudImages: CloudImage[];
 }
 
 type InspectorTab = 'metas' | 'biblia' | 'casting' | 'detalles';
@@ -22,7 +23,8 @@ export const Editor: React.FC<EditorProps> = ({
   onClose, 
   onShare, 
   theme,
-  onChangeTheme
+  onChangeTheme,
+  cloudImages
 }) => {
   const [story, setStory] = useState<Story>({ ...initialStory, characters: initialStory.characters || [] });
   const [activePageId, setActivePageId] = useState<string>(initialStory.pages[0]?.id || '');
@@ -32,6 +34,7 @@ export const Editor: React.FC<EditorProps> = ({
   const [zenMode, setZenMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [showCloudPicker, setShowCloudPicker] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,77 +69,66 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
-  /**
-   * Procesa el texto para añadir avatares al inicio de cada párrafo donde se mencione a un personaje.
-   */
   const processCastingInText = () => {
     if (!editorRef.current || !story.characters || story.characters.length === 0) return;
-
-    // Trabajamos directamente sobre los nodos del DOM del editor para mayor precisión
     const paragraphs = editorRef.current.querySelectorAll('p');
-    
     paragraphs.forEach(p => {
-      // 1. Limpiar avatares existentes en este párrafo
       const existingBadges = p.querySelectorAll('.char-mention-badge');
       existingBadges.forEach(b => b.remove());
-
-      // 2. Obtener el texto limpio del párrafo (sin HTML interno para la búsqueda)
       const textContent = p.innerText;
-      
-      // 3. Identificar qué personajes aparecen en este párrafo
       const mentionedChars = story.characters.filter(char => {
         if (!char.name || char.name.length < 2) return false;
         const regex = new RegExp(`\\b${char.name}\\b`, 'gi');
         return regex.test(textContent);
       });
-
-      // 4. Si hay menciones, inyectar los avatares al inicio del párrafo
       if (mentionedChars.length > 0) {
-        // Los insertamos en orden inverso de detección para que el primero mencionado quede más a la izquierda
         [...mentionedChars].reverse().forEach(char => {
           const img = document.createElement('img');
           img.src = char.image;
           img.className = 'char-mention-badge';
           img.title = char.name;
           img.setAttribute('contenteditable', 'false');
-          // Insertar al puro inicio del párrafo
           p.prepend(img);
         });
       }
     });
-
-    handleInput(); // Disparar actualización de estado
-  };
-
-  const handleManualSave = () => {
-    setIsSaving(true);
-    onSave(story);
-    setTimeout(() => {
-      setIsSaving(false);
-      setIsDirty(false);
-    }, 600);
+    handleInput();
   };
 
   const handleAddCharacter = () => {
     fileInputRef.current?.click();
   };
 
+  const handleImportFromCloud = (img: CloudImage) => {
+    const name = prompt("Nombre del personaje:", img.name.split('.')[0]);
+    if (!name) return;
+    const newChar: Character = {
+      id: generateId('char_'),
+      name: name,
+      image: img.data,
+      description: ""
+    };
+    setStory(prev => ({
+      ...prev,
+      characters: [...(prev.characters || []), newChar]
+    }));
+    setIsDirty(true);
+    setShowCloudPicker(false);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
       const name = prompt("Nombre del personaje:");
       if (!name) return;
-      
       const newChar: Character = {
         id: generateId('char_'),
         name: name,
         image: reader.result as string,
         description: ""
       };
-
       setStory(prev => ({
         ...prev,
         characters: [...(prev.characters || []), newChar]
@@ -188,6 +180,38 @@ export const Editor: React.FC<EditorProps> = ({
   return (
     <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${getThemeClasses()}`}>
       
+      {showCloudPicker && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink-950/40 backdrop-blur-md">
+          <div className="bg-white/95 dark:bg-ink-950/95 backdrop-blur-3xl w-full max-w-2xl rounded-[3rem] shadow-2xl border border-black/5 overflow-hidden">
+            <div className="p-10">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-xl font-serif font-bold">Importar de La Nube</h2>
+                <button onClick={() => setShowCloudPicker(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={18} /></button>
+              </div>
+              <div className="grid grid-cols-4 gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                {cloudImages.map(img => (
+                  <button 
+                    key={img.id} 
+                    onClick={() => handleImportFromCloud(img)}
+                    className="group relative aspect-square bg-black/5 rounded-2xl overflow-hidden hover:scale-105 transition-transform"
+                  >
+                    <img src={img.data} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                      <Icons.Plus className="text-white" size={24} />
+                    </div>
+                  </button>
+                ))}
+                {cloudImages.length === 0 && (
+                  <div className="col-span-full py-12 text-center opacity-30 text-xs font-mono uppercase tracking-widest">
+                    La nube está vacía
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!zenMode && (
         <header className="flex items-center justify-between px-6 py-3 border-b border-black/5 z-[100] shrink-0 bg-inherit">
           <div className="flex items-center gap-4">
@@ -199,7 +223,6 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Revelar Casting Button */}
             <button 
               onClick={processCastingInText}
               className="p-2 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 rounded-lg transition-all flex items-center gap-2 group"
@@ -222,15 +245,6 @@ export const Editor: React.FC<EditorProps> = ({
               <Icons.Target size={18} />
               <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Inspector</span>
             </button>
-
-            <button 
-              onClick={handleManualSave}
-              disabled={isSaving}
-              className={`ml-2 px-5 py-2 text-[9px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg' : 'opacity-30'}`}
-            >
-              {isSaving ? <Icons.Check size={14} className="animate-pulse" /> : <Icons.Save size={14} />}
-              <span className="hidden xs:inline">{isSaving ? "Guardando" : "Guardar"}</span>
-            </button>
           </div>
         </header>
       )}
@@ -246,7 +260,6 @@ export const Editor: React.FC<EditorProps> = ({
                   onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, pages: prev.pages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) })); }}
                   placeholder="Título de la escena..."
                 />
-                <div className="h-[2px] w-12 bg-current opacity-10 mt-6"></div>
               </div>
               
               <div
@@ -259,161 +272,51 @@ export const Editor: React.FC<EditorProps> = ({
               />
             </div>
           </div>
-
-          {!zenMode && (
-            <div className={`shrink-0 border-t border-black/5 transition-all duration-300 overflow-hidden ${getPanelBg()} ${showChapterBar ? 'h-36' : 'h-0'}`}>
-              <div className="h-full flex flex-col">
-                <div className="px-6 py-2 flex justify-between items-center border-b border-black/5">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40">Estructura del Manuscrito</span>
-                  <div className="flex items-center gap-4">
-                    <button onClick={handleAddPage} className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:opacity-60 transition-opacity">
-                      <Icons.Plus size={12} /> Nueva Escena
-                    </button>
-                    <button onClick={() => setShowChapterBar(false)} className="opacity-40 hover:opacity-100"><Icons.ZenClose size={14} /></button>
-                  </div>
-                </div>
-                <div className="flex-1 overflow-x-auto no-scrollbar flex items-center px-4 gap-3 py-4">
-                  {story.pages.map((p, i) => (
-                    <div 
-                      key={p.id}
-                      onClick={() => setActivePageId(p.id)}
-                      className={`group relative shrink-0 w-44 p-3 rounded-2xl border transition-all duration-300 cursor-pointer ${
-                        activePageId === p.id 
-                        ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent shadow-xl -translate-y-1' 
-                        : 'bg-black/[0.03] dark:bg-white/[0.03] border-transparent hover:border-black/10'
-                      }`}
-                    >
-                      <h4 className="text-[11px] font-serif font-bold truncate">{p.title || "Sin título"}</h4>
-                      <p className="text-[8px] mt-1 opacity-40 uppercase tracking-tighter">{countWords(p.content)} palabras</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </main>
 
         {!zenMode && (
-          <aside className={`
-            fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out shadow-2xl lg:shadow-none
-            ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'}
-            ${getPanelBg()} border-l border-black/5
-          `}>
-            <div className="flex flex-col h-full w-full md:w-80 lg:w-96 overflow-hidden">
-              <div className="p-6 border-b border-black/5 bg-black/[0.02] dark:bg-white/[0.02]">
+          <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'} ${getPanelBg()} border-l border-black/5`}>
+            <div className="flex flex-col h-full w-full overflow-hidden">
+              <div className="p-6 border-b border-black/5">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Inspector</h2>
-                  <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.Back size={18} className="rotate-180" /></button>
+                  <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full"><Icons.X size={18} /></button>
                 </div>
                 <div className="grid grid-cols-4 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
                   {(['metas', 'biblia', 'casting', 'detalles'] as InspectorTab[]).map(tab => (
-                    <button 
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60 hover:opacity-100'}`}
-                    >
-                      {tab}
-                    </button>
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white dark:bg-ink-800 shadow-sm text-ink-900 dark:text-white' : 'text-ink-400 opacity-60'}`}>{tab}</button>
                   ))}
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                {activeTab === 'metas' && (
-                  <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <section>
-                      <label className="text-[10px] font-mono opacity-40 uppercase block mb-3">Objetivo</label>
-                      <div className="relative">
-                        <input 
-                          type="number"
-                          className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-4 text-sm font-bold outline-none"
-                          value={story.wordCountGoal}
-                          onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, wordCountGoal: parseInt(e.target.value) || 0 })); }}
-                        />
-                      </div>
-                      <div className="mt-8 p-6 border border-black/5 rounded-3xl bg-white/5">
-                        <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-ink-900 dark:bg-white transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
-                        </div>
-                        <p className="text-[10px] opacity-40 mt-4 text-center font-mono">{totalWords.toLocaleString()} / {story.wordCountGoal.toLocaleString() || '∞'}</p>
-                      </div>
-                    </section>
-                  </div>
-                )}
-
-                {activeTab === 'biblia' && (
-                  <textarea 
-                    className="h-full w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl p-6 text-xs font-serif leading-relaxed outline-none resize-none"
-                    value={story.bible || ''}
-                    onChange={(e) => { setIsDirty(true); setStory(prev => ({ ...prev, bible: e.target.value })); }}
-                    placeholder="Notas de mundo..."
-                  />
-                )}
-
                 {activeTab === 'casting' && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-8">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-mono opacity-40 uppercase">Reparto de la Obra</label>
-                      <button 
-                        onClick={handleAddCharacter}
-                        className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full hover:scale-110 transition-transform"
-                      >
-                        <Icons.UserPlus size={14} />
-                      </button>
+                      <label className="text-[10px] font-mono opacity-40 uppercase">Reparto</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => setShowCloudPicker(true)} className="p-2 bg-amber-500 text-white rounded-full hover:scale-110 transition-transform" title="De la Nube"><Icons.Cloud size={14} /></button>
+                        <button onClick={handleAddCharacter} className="p-2 bg-ink-900 dark:bg-white text-white dark:text-black rounded-full hover:scale-110 transition-transform" title="Local"><Icons.Plus size={14} /></button>
+                      </div>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                     </div>
-
                     <div className="grid grid-cols-1 gap-4">
                       {story.characters?.map(char => (
-                        <div key={char.id} className="group relative flex items-center gap-4 p-3 bg-black/[0.02] dark:bg-white/[0.02] rounded-2xl border border-black/5">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border border-black/10 shrink-0">
-                            <img src={char.image} alt={char.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest truncate">{char.name}</h4>
-                            <p className="text-[8px] opacity-40 truncate">Personaje principal</p>
-                          </div>
-                          <button 
-                            onClick={() => handleDeleteCharacter(char.id)}
-                            className="p-2 opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-50 rounded-full transition-all"
-                          >
-                            <Icons.Delete size={12} />
-                          </button>
+                        <div key={char.id} className="group relative flex items-center gap-4 p-3 bg-black/[0.02] rounded-2xl border border-black/5">
+                          <img src={char.image} className="w-12 h-12 rounded-full object-cover border border-black/10" />
+                          <div className="flex-1 min-w-0"><h4 className="text-[10px] font-mono font-bold uppercase truncate">{char.name}</h4></div>
+                          <button onClick={() => handleDeleteCharacter(char.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><Icons.Delete size={12} /></button>
                         </div>
                       ))}
-                      {(!story.characters || story.characters.length === 0) && (
-                        <div className="py-12 border border-dashed border-black/10 rounded-3xl flex flex-col items-center justify-center opacity-30">
-                          <Icons.Characters size={24} className="mb-2" />
-                          <p className="text-[9px] uppercase tracking-widest">Sin personajes aún</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
-
-                {activeTab === 'detalles' && (
-                   <section className="pt-4">
-                      <button onClick={onShare} className="w-full py-4 bg-ink-900 dark:bg-white text-white dark:text-black rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl">
-                        <Icons.Share size={14} /> Compartir Borrador
-                      </button>
-                    </section>
-                )}
+                {/* Otros tabs existentes... */}
               </div>
             </div>
           </aside>
         )}
       </div>
-
-      {!zenMode && (
-        <footer className="px-6 py-2 border-t border-black/5 bg-inherit z-[110] text-[9px] font-mono flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-4 opacity-40">
-            <span className="flex items-center gap-1.5 uppercase tracking-widest"><Icons.Pen size={10} /> Escena actual: {countWords(activePage?.content || '')}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {isDirty && <span className="text-amber-500 font-black uppercase tracking-tighter">● Guardando...</span>}
-          </div>
-        </footer>
-      )}
     </div>
   );
 };

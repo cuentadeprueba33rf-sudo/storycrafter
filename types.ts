@@ -28,6 +28,14 @@ export interface Character {
   description: string;
 }
 
+export interface CloudImage {
+  id: string;
+  data: string;
+  name: string;
+  size: number;
+  createdAt: number;
+}
+
 export interface Page {
   id: string;
   title: string;
