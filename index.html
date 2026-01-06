@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -12,7 +13,6 @@
         theme: {
           extend: {
             colors: {
-              // Reemplazamos 'ink' por una escala Zinc (neutra y profesional)
               ink: {
                 50: '#fafafa',
                 100: '#f4f4f5',
@@ -26,7 +26,6 @@
                 900: '#18181b',
                 950: '#09090b',
               },
-              // Acentos serios (Bronce/Dorado apagado para selecciones)
               accent: {
                 light: '#a1a1aa',
                 DEFAULT: '#18181b', 
@@ -49,7 +48,6 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap');
 
-      /* Custom scrollbar refinado */
       ::-webkit-scrollbar {
         width: 5px;
         height: 5px;
@@ -75,12 +73,15 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client"
   }
 }
 </script>
 </head>
   <body class="bg-ink-50 dark:bg-black text-ink-900 dark:text-ink-100 transition-colors duration-200 overflow-hidden font-sans antialiased selection:bg-ink-200 dark:selection:bg-ink-800">
     <div id="root"></div>
+    <!-- Script de entrada explícito para asegurar la carga en todos los entornos -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

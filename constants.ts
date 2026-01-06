@@ -1,4 +1,5 @@
-import { Genre, StoryStatus } from './types';
+
+import { Genre, StoryStatus } from './types.ts';
 
 export const ALL_GENRES = Object.values(Genre);
 export const ALL_STATUSES = Object.values(StoryStatus);

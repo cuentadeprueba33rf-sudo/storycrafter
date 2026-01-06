@@ -1,5 +1,6 @@
-import { Story, Folder, Page, Genre, StoryStatus } from '../types';
-import { STORAGE_KEY, ID_PREFIX } from '../constants';
+
+import { Story, Folder, Page, Genre, StoryStatus } from '../types.ts';
+import { STORAGE_KEY, ID_PREFIX } from '../constants.ts';
 
 export interface AppData {
   stories: Story[];

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import {
   BookOpen,
   Folder,
@@ -35,8 +35,8 @@ import {
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
   const numericSize = typeof size === 'number' ? size : parseInt(String(size), 10) || 24;
   return (
-    <div className="relative inline-flex">
-      <Folder size={size} strokeWidth={1.5} />
+    <div className="relative inline-flex" style={{ width: numericSize, height: numericSize }}>
+      <Folder size={numericSize} strokeWidth={1.5} />
       <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-[1px]">
         <Plus size={numericSize / 2} strokeWidth={3} />
       </div>
