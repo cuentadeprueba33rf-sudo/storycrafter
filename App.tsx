@@ -22,6 +22,7 @@ function App() {
   const [data, setData] = useState<AppData>({ stories: [], folders: [], cloudImages: [] });
   const [view, setView] = useState<ViewMode>('HOME');
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const [communityStory, setCommunityStory] = useState<Story | null>(null); // Nuevo: Para historias del feed
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [editorTheme, setEditorTheme] = useState<EditorTheme>('LIGHT');
   const [isLoading, setIsLoading] = useState(true);
@@ -88,10 +89,18 @@ function App() {
     };
     setData(prev => ({ ...prev, stories: [newStory, ...prev.stories] }));
     setActiveStoryId(newStory.id);
+    setCommunityStory(null);
     setView('EDITOR');
   };
 
   const handleSaveStory = useCallback(async (updatedStory: Story) => {
+    // Si estamos editando una historia de la comunidad, no la guardamos en local por defecto 
+    // a menos que queramos implementar una función de "clonar"
+    if (communityStory && updatedStory.id === communityStory.id) {
+       setCommunityStory(updatedStory);
+       return; 
+    }
+
     setData(prev => ({
       ...prev,
       stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
@@ -109,7 +118,7 @@ function App() {
           content_json: updatedStory.pages,
           updated_at: new Date().toISOString(),
           user_id: session.user.id,
-          is_admin: isAdmin // Guardamos si es post de admin
+          is_admin: isAdmin
         };
 
         const { error } = await supabase
@@ -121,7 +130,7 @@ function App() {
         console.error("Error de red Supabase:", e);
       }
     }
-  }, [session, isAdmin]);
+  }, [session, isAdmin, communityStory]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -134,13 +143,14 @@ function App() {
         <div className="flex flex-col items-center animate-pulse">
           <div className="mb-6 p-4 border border-ink-200 dark:border-ink-800 rounded-sm"><Icons.Pen size={48} strokeWidth={1} /></div>
           <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Verificando Credenciales...</div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-400">Estudio Creativo...</div>
         </div>
       </div>
     );
   }
 
-  const activeStory = data.stories.find(s => s.id === activeStoryId);
+  // Lógica de selección de historia activa: Prioriza la de la comunidad si se viene del Feed
+  const activeStory = communityStory || data.stories.find(s => s.id === activeStoryId);
 
   return (
     <div className="flex h-screen overflow-hidden bg-ink-50 dark:bg-black">
@@ -169,7 +179,11 @@ function App() {
               setData(prev => ({ ...prev, folders: [...prev.folders, { id: generateId(ID_PREFIX.FOLDER), name, parentId: currentFolderId, createdAt: Date.now() }] }));
             }} 
             onCreateStory={handleCreateStory}
-            onOpenStory={(id) => { setActiveStoryId(id); setView('EDITOR'); }}
+            onOpenStory={(id) => { 
+              setActiveStoryId(id); 
+              setCommunityStory(null); 
+              setView('EDITOR'); 
+            }}
             onDeleteStory={(id) => setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }))}
             onDeleteFolder={(id) => setData(prev => ({ ...prev, folders: prev.folders.filter(f => f.id !== id) }))}
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
@@ -181,6 +195,7 @@ function App() {
           <Feed 
             onBack={() => setView('HOME')}
             onReadStory={(story) => {
+              setCommunityStory(story);
               setActiveStoryId(story.id);
               setView('EDITOR');
             }}
@@ -190,7 +205,11 @@ function App() {
         )}
         {view === 'EDITOR' && activeStory && (
           <Editor 
-            story={activeStory} onSave={handleSaveStory} onClose={() => setView('LIBRARY')} 
+            story={activeStory} onSave={handleSaveStory} 
+            onClose={() => {
+              setCommunityStory(null);
+              setView(communityStory ? 'FEED' : 'LIBRARY');
+            }} 
             onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
