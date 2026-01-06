@@ -99,35 +99,35 @@ function App() {
        return; 
     }
 
-    const finalStory = { ...updatedStory, authorName: getDisplayName() };
-
     setData(prev => ({
       ...prev,
-      stories: prev.stories.map(s => s.id === updatedStory.id ? finalStory : s)
+      stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
     }));
 
-    if (finalStory.isPublished && session) {
-      try {
-        const payload = {
-          id: finalStory.id,
-          title: finalStory.title,
-          synopsis: finalStory.synopsis,
-          author_name: getDisplayName(),
-          genres: finalStory.genres,
-          status: finalStory.status,
-          content_json: finalStory.pages,
-          updated_at: new Date().toISOString(),
-          user_id: session.user.id,
-          is_admin: isAdmin
-        };
-
-        const { error } = await supabase
-          .from('public_stories')
-          .upsert(payload, { onConflict: 'id' });
-
-        if (error) console.error("Error al publicar en feed:", error);
-      } catch (e) {
-        console.error("Fallo de conexión:", e);
+    if (session) {
+      if (updatedStory.isPublished) {
+        try {
+          const payload = {
+            id: updatedStory.id,
+            title: updatedStory.title,
+            synopsis: updatedStory.synopsis,
+            author_name: updatedStory.authorName, // Usar el nombre de pluma o Anónimo elegido
+            genres: updatedStory.genres,
+            status: updatedStory.status,
+            content_json: updatedStory.pages,
+            updated_at: new Date().toISOString(),
+            user_id: session.user.id,
+            is_admin: isAdmin
+          };
+          await supabase.from('public_stories').upsert(payload, { onConflict: 'id' });
+        } catch (e) {
+          console.error("Fallo de publicación:", e);
+        }
+      } else {
+        // Si no está marcada como publicada, nos aseguramos de borrarla del feed si existía
+        try {
+          await supabase.from('public_stories').delete().eq('id', updatedStory.id);
+        } catch (e) {}
       }
     }
   }, [session, isAdmin, communityStory]);
@@ -183,7 +183,12 @@ function App() {
               setCommunityStory(null); 
               setView('EDITOR'); 
             }}
-            onDeleteStory={(id) => setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }))}
+            onDeleteStory={(id) => {
+              if(confirm("¿Seguro que quieres borrar este manuscrito?")) {
+                setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }));
+                supabase.from('public_stories').delete().eq('id', id).then(() => {});
+              }
+            }}
             onDeleteFolder={(id) => setData(prev => ({ ...prev, folders: prev.folders.filter(f => f.id !== id) }))}
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
             onShareStory={(id) => alert("Enlace copiado")}
@@ -212,7 +217,7 @@ function App() {
             onShare={() => alert("Compartido")} theme={editorTheme} onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
-            readOnly={!!communityStory} // Si viene del feed, es solo lectura
+            readOnly={!!communityStory}
           />
         )}
       </div>
