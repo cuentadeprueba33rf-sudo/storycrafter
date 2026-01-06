@@ -9,6 +9,7 @@ import { Editor } from './components/Editor';
 import { Dashboard } from './components/Dashboard';
 import { Feed } from './components/Feed';
 import { Auth } from './components/Auth';
+import { AdminPanel } from './components/AdminPanel';
 import { Icons } from './components/Icon';
 
 const supabase = createClient(
@@ -52,7 +53,7 @@ function App() {
   }, [data, isLoading]);
 
   useEffect(() => {
-    if (view === 'EDITOR' && editorTheme === 'DARK') {
+    if ((view === 'EDITOR' && editorTheme === 'DARK') || view === 'ADMIN_USERS') {
       document.documentElement.classList.add('dark');
     } else if (view !== 'EDITOR' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
        document.documentElement.classList.add('dark');
@@ -85,7 +86,7 @@ function App() {
       pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'Capítulo I', content: '', order: 0 }],
       characters: [],
       isPublished: false,
-      authorName: getDisplayName() // Inicialmente usa su nombre de pluma
+      authorName: getDisplayName()
     };
     setData(prev => ({ ...prev, stories: [newStory, ...prev.stories] }));
     setActiveStoryId(newStory.id);
@@ -99,13 +100,11 @@ function App() {
        return; 
     }
 
-    // Actualizamos localmente
     setData(prev => ({
       ...prev,
       stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
     }));
 
-    // Sincronización con Comunidad
     if (session) {
       if (updatedStory.isPublished) {
         try {
@@ -113,7 +112,7 @@ function App() {
             id: updatedStory.id,
             title: updatedStory.title,
             synopsis: updatedStory.synopsis,
-            author_name: updatedStory.authorName, // Puede ser "Anónimo" o su Nombre de Pluma
+            author_name: updatedStory.authorName,
             genres: updatedStory.genres,
             status: updatedStory.status,
             content_json: updatedStory.pages,
@@ -126,7 +125,6 @@ function App() {
           console.error("Error sincronizando con comunidad:", e);
         }
       } else {
-        // Si ya no está publicada, borrar del feed público si existía
         try {
           await supabase.from('public_stories').delete().eq('id', updatedStory.id);
         } catch (e) {}
@@ -162,6 +160,7 @@ function App() {
           <Dashboard 
             onEnterStudio={() => setView('LIBRARY')} 
             onEnterExplore={() => setView('FEED')}
+            onEnterAdmin={() => setView('ADMIN_USERS')}
             cloudImages={data.cloudImages}
             onUpdateCloud={handleUpdateCloud}
             session={session}
@@ -233,6 +232,12 @@ function App() {
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
             readOnly={!!communityStory}
+          />
+        )}
+        {view === 'ADMIN_USERS' && isAdmin && (
+          <AdminPanel 
+            supabase={supabase} 
+            onBack={() => setView('HOME')} 
           />
         )}
       </div>

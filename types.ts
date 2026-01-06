@@ -61,8 +61,8 @@ export interface Story {
   soundtrackName?: string;
   typewriterEnabled?: boolean;
   sprintMinutes?: number;
-  isPublished?: boolean; // Nuevo: Estado de publicación
-  authorName?: string; // Nuevo: Nombre del autor para el feed
+  isPublished?: boolean;
+  authorName?: string;
 }
 
 export interface Folder {
@@ -72,7 +72,7 @@ export interface Folder {
   createdAt: number;
 }
 
-export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR' | 'CHARACTERS' | 'FEED'; // Añadido FEED
+export type ViewMode = 'HOME' | 'LIBRARY' | 'EDITOR' | 'CHARACTERS' | 'FEED' | 'ADMIN_USERS';
 
 export type LibraryViewMode = 'LIST' | 'GRID';
 
