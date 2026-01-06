@@ -66,6 +66,32 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
+  const processCastingInText = () => {
+    if (!editorRef.current || !story.characters || story.characters.length === 0) return;
+    
+    // Guardar posición del cursor antes de procesar
+    let currentContent = editorRef.current.innerHTML;
+    
+    // 1. Limpiar avatares existentes para evitar duplicados
+    currentContent = currentContent.replace(/<img[^>]*class="char-avatar-inline"[^>]*>/g, '');
+    
+    // 2. Escanear nombres e inyectar avatares
+    story.characters.forEach(char => {
+      if (!char.name || char.name.length < 2) return;
+      
+      // Regex que busca el nombre pero ignora si está dentro de un tag HTML
+      // Busca la palabra exacta (\b) para evitar reemplazar fragmentos de otras palabras
+      const regex = new RegExp(`\\b(${char.name})\\b(?![^<]*>)`, 'gi');
+      
+      currentContent = currentContent.replace(regex, (match) => {
+        return `${match}<img src="${char.image}" class="char-avatar-inline" title="${char.name}" contenteditable="false" />`;
+      });
+    });
+
+    editorRef.current.innerHTML = currentContent;
+    handleInput(); // Disparar guardado
+  };
+
   const handleManualSave = () => {
     setIsSaving(true);
     onSave(story);
@@ -157,6 +183,16 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Revelar Casting Button */}
+            <button 
+              onClick={processCastingInText}
+              className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all flex items-center gap-2"
+              title="Revelar Reparto en el texto"
+            >
+              <Icons.Magic size={18} />
+              <span className="hidden lg:inline text-[9px] font-black uppercase tracking-[0.2em]">Casting</span>
+            </button>
+
             <div className="hidden sm:flex bg-black/5 dark:bg-white/5 p-1 rounded-xl mr-2">
               <button onClick={() => onChangeTheme('LIGHT')} className={`p-1.5 rounded-lg ${theme === 'LIGHT' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-400'}`}><Icons.Sun size={14} /></button>
               <button onClick={() => onChangeTheme('SEPIA')} className={`p-1.5 rounded-lg ${theme === 'SEPIA' ? 'bg-[#5d4037] text-white shadow-sm' : 'text-ink-400'}`}><Icons.Sepia size={14} /></button>

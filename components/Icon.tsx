@@ -38,7 +38,8 @@ import {
   Users,
   Image as ImageIcon,
   UserPlus,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -93,5 +94,6 @@ export const Icons = {
   Characters: Users,
   Image: ImageIcon,
   UserPlus,
-  X
+  X,
+  Magic: Sparkles
 };

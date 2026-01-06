@@ -63,6 +63,29 @@
       
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Estilos para el Casting Inline */
+      .char-avatar-inline {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        object-fit: cover;
+        vertical-align: middle;
+        margin-left: 4px;
+        margin-right: 2px;
+        border: 1px solid currentColor;
+        opacity: 0.85;
+        transition: all 0.3s ease;
+        filter: grayscale(0.2);
+        cursor: pointer;
+        user-select: none;
+      }
+      .char-avatar-inline:hover {
+        opacity: 1;
+        transform: scale(1.2);
+        filter: grayscale(0);
+      }
     </style>
   <script type="importmap">
 {
