@@ -47,7 +47,11 @@ import {
   Disc,
   Play,
   Pause,
-  Volume2
+  Volume2,
+  Timer,
+  Keyboard,
+  Zap,
+  RotateCcw
 } from 'lucide-react';
 
 const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
@@ -111,5 +115,9 @@ export const Icons = {
   Disc,
   Play,
   Pause,
-  Volume: Volume2
+  Volume: Volume2,
+  Timer,
+  Keyboard,
+  Zap,
+  Reset: RotateCcw
 };
