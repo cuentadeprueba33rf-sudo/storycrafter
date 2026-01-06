@@ -59,32 +59,37 @@
       [contenteditable] b, [contenteditable] strong { font-weight: 700; }
       [contenteditable] i, [contenteditable] em { font-style: italic; }
       [contenteditable] u { text-decoration: underline; }
-      [contenteditable] p { margin-bottom: 1rem; }
+      [contenteditable] p { margin-bottom: 1.5rem; position: relative; min-height: 1.5em; }
       
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-      /* Estilos para el Casting Inline */
-      .char-avatar-inline {
+      /* Estilos para el Casting al Inicio del Párrafo */
+      .char-mention-badge {
         display: inline-block;
-        width: 18px;
-        height: 18px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         object-fit: cover;
         vertical-align: middle;
-        margin-left: 4px;
-        margin-right: 2px;
-        border: 1px solid currentColor;
-        opacity: 0.85;
-        transition: all 0.3s ease;
-        filter: grayscale(0.2);
-        cursor: pointer;
+        margin-right: 6px;
+        border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        opacity: 0.9;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        filter: grayscale(0.3);
         user-select: none;
+        pointer-events: auto;
       }
-      .char-avatar-inline:hover {
+      .dark .char-mention-badge {
+        border-color: rgba(255,255,255,0.1);
+      }
+      .char-mention-badge:hover {
         opacity: 1;
-        transform: scale(1.2);
+        transform: scale(1.4);
         filter: grayscale(0);
+        z-index: 10;
+        margin-right: 10px;
       }
     </style>
   <script type="importmap">

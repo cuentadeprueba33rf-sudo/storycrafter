@@ -66,30 +66,46 @@ export const Editor: React.FC<EditorProps> = ({
     }
   };
 
+  /**
+   * Procesa el texto para añadir avatares al inicio de cada párrafo donde se mencione a un personaje.
+   */
   const processCastingInText = () => {
     if (!editorRef.current || !story.characters || story.characters.length === 0) return;
+
+    // Trabajamos directamente sobre los nodos del DOM del editor para mayor precisión
+    const paragraphs = editorRef.current.querySelectorAll('p');
     
-    // Guardar posición del cursor antes de procesar
-    let currentContent = editorRef.current.innerHTML;
-    
-    // 1. Limpiar avatares existentes para evitar duplicados
-    currentContent = currentContent.replace(/<img[^>]*class="char-avatar-inline"[^>]*>/g, '');
-    
-    // 2. Escanear nombres e inyectar avatares
-    story.characters.forEach(char => {
-      if (!char.name || char.name.length < 2) return;
+    paragraphs.forEach(p => {
+      // 1. Limpiar avatares existentes en este párrafo
+      const existingBadges = p.querySelectorAll('.char-mention-badge');
+      existingBadges.forEach(b => b.remove());
+
+      // 2. Obtener el texto limpio del párrafo (sin HTML interno para la búsqueda)
+      const textContent = p.innerText;
       
-      // Regex que busca el nombre pero ignora si está dentro de un tag HTML
-      // Busca la palabra exacta (\b) para evitar reemplazar fragmentos de otras palabras
-      const regex = new RegExp(`\\b(${char.name})\\b(?![^<]*>)`, 'gi');
-      
-      currentContent = currentContent.replace(regex, (match) => {
-        return `${match}<img src="${char.image}" class="char-avatar-inline" title="${char.name}" contenteditable="false" />`;
+      // 3. Identificar qué personajes aparecen en este párrafo
+      const mentionedChars = story.characters.filter(char => {
+        if (!char.name || char.name.length < 2) return false;
+        const regex = new RegExp(`\\b${char.name}\\b`, 'gi');
+        return regex.test(textContent);
       });
+
+      // 4. Si hay menciones, inyectar los avatares al inicio del párrafo
+      if (mentionedChars.length > 0) {
+        // Los insertamos en orden inverso de detección para que el primero mencionado quede más a la izquierda
+        [...mentionedChars].reverse().forEach(char => {
+          const img = document.createElement('img');
+          img.src = char.image;
+          img.className = 'char-mention-badge';
+          img.title = char.name;
+          img.setAttribute('contenteditable', 'false');
+          // Insertar al puro inicio del párrafo
+          p.prepend(img);
+        });
+      }
     });
 
-    editorRef.current.innerHTML = currentContent;
-    handleInput(); // Disparar guardado
+    handleInput(); // Disparar actualización de estado
   };
 
   const handleManualSave = () => {
@@ -186,10 +202,10 @@ export const Editor: React.FC<EditorProps> = ({
             {/* Revelar Casting Button */}
             <button 
               onClick={processCastingInText}
-              className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all flex items-center gap-2"
-              title="Revelar Reparto en el texto"
+              className="p-2 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 rounded-lg transition-all flex items-center gap-2 group"
+              title="Sincronizar Reparto en Párrafos"
             >
-              <Icons.Magic size={18} />
+              <Icons.Magic size={18} className="group-hover:rotate-12 transition-transform" />
               <span className="hidden lg:inline text-[9px] font-black uppercase tracking-[0.2em]">Casting</span>
             </button>
 
@@ -355,7 +371,7 @@ export const Editor: React.FC<EditorProps> = ({
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest truncate">{char.name}</h4>
-                            <p className="text-[8px] opacity-40 truncate">Personaje secundario</p>
+                            <p className="text-[8px] opacity-40 truncate">Personaje principal</p>
                           </div>
                           <button 
                             onClick={() => handleDeleteCharacter(char.id)}
