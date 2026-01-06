@@ -32,6 +32,7 @@ function App() {
 
   const isAdmin = session?.user?.email === ADMIN_EMAIL;
 
+  // 1. Escuchar cambios de autenticación
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -40,18 +41,39 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
-
-    const loaded = loadData();
-    setData(loaded);
-    const timer = setTimeout(() => setIsLoading(false), 1500);
     
     return () => subscription.unsubscribe();
   }, []);
 
+  // 2. Reaccionar al cambio de sesión: CARGAR DATOS ESPECÍFICOS
   useEffect(() => {
-    if (!isLoading) saveData(data);
-  }, [data, isLoading]);
+    setIsLoading(true);
+    const userId = session?.user?.id;
+    
+    // Al cambiar de usuario o cerrar sesión:
+    // - Cargamos los datos del nuevo usuario (o del invitado)
+    // - Reseteamos la vista activa si cerramos sesión para evitar fugas de datos
+    const loaded = loadData(userId);
+    setData(loaded);
+    
+    if (!userId) {
+      setView('HOME');
+      setActiveStoryId(null);
+      setCommunityStory(null);
+    }
 
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [session]);
+
+  // 3. Guardar datos solo cuando el estado de datos o la sesión cambian
+  useEffect(() => {
+    if (!isLoading) {
+      saveData(data, session?.user?.id);
+    }
+  }, [data, isLoading, session]);
+
+  // 4. Modo oscuro basado en contexto
   useEffect(() => {
     if ((view === 'EDITOR' && editorTheme === 'DARK') || view === 'ADMIN_USERS') {
       document.documentElement.classList.add('dark');
@@ -63,7 +85,7 @@ function App() {
   }, [view, editorTheme]);
 
   const getDisplayName = () => {
-    return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Escritor";
+    return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Invitado";
   };
 
   const handleUpdateCloud = (cloudImages: CloudImage[]) => {
@@ -133,17 +155,21 @@ function App() {
   }, [session, isAdmin, communityStory]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setView('HOME');
+    if(confirm("¿Seguro que deseas cerrar tu sesión de autor? Tus obras locales se guardarán de forma segura en este dispositivo.")) {
+      await supabase.auth.signOut();
+      // El useEffect de session se encargará del resto (limpiar datos y redirigir)
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-ink-50 dark:bg-black text-ink-900 dark:text-white">
+      <div className="flex flex-col items-center justify-center h-screen bg-[#050505] text-white">
         <div className="flex flex-col items-center animate-pulse">
-          <div className="mb-6 p-6 border border-ink-200 dark:border-ink-800 rounded-[2rem]"><Icons.Pen size={48} strokeWidth={1} /></div>
-          <h1 className="text-4xl font-serif font-medium tracking-tighter mb-2">StoryCraft</h1>
-          <div className="text-[10px] font-mono uppercase tracking-[0.5em] text-ink-400">Firmando Manuscritos...</div>
+          <div className="mb-8 p-8 border border-white/5 rounded-[2.5rem] bg-white/[0.02]">
+            <Icons.Pen size={40} strokeWidth={1} className="text-amber-500" />
+          </div>
+          <h1 className="text-2xl font-serif italic tracking-widest mb-3">Sincronizando Archivos</h1>
+          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-white/20">Accediendo a la Bóveda del Autor</div>
         </div>
       </div>
     );
@@ -152,7 +178,7 @@ function App() {
   const activeStory = communityStory || data.stories.find(s => s.id === activeStoryId);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-ink-50 dark:bg-black">
+    <div className="flex h-screen overflow-hidden bg-[#050505]">
       {showAuth && <Auth supabase={supabase} onClose={() => setShowAuth(false)} />}
       
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
@@ -185,13 +211,13 @@ function App() {
               setView('EDITOR'); 
             }}
             onDeleteStory={(id) => {
-              if(confirm("¿Estás seguro de que deseas eliminar permanentemente este manuscrito? Esta acción no se puede deshacer.")) {
+              if(confirm("¿Borrar definitivamente este manuscrito?")) {
                 setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }));
                 supabase.from('public_stories').delete().eq('id', id).then(() => {});
               }
             }}
             onDeleteFolder={(id) => {
-              if(confirm("¿Borrar carpeta? Los manuscritos dentro se mantendrán en la raíz.")) {
+              if(confirm("¿Borrar carpeta?")) {
                 setData(prev => ({ 
                   ...prev, 
                   folders: prev.folders.filter(f => f.id !== id),
@@ -202,7 +228,7 @@ function App() {
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
             onShareStory={(id) => {
               navigator.clipboard.writeText(`${window.location.origin}?story=${id}`);
-              alert("Enlace del manuscrito copiado al portapapeles.");
+              alert("Enlace copiado.");
             }}
             onBackHome={() => setView('HOME')}
           />
@@ -226,7 +252,7 @@ function App() {
               setCommunityStory(null);
               setView(communityStory ? 'FEED' : 'LIBRARY');
             }} 
-            onShare={() => alert("Función de compartir activada.")} 
+            onShare={() => alert("Compartir activado.")} 
             theme={editorTheme} 
             onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}

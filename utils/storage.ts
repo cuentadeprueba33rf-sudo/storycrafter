@@ -1,6 +1,6 @@
 
-import { Story, Folder, Page, Genre, StoryStatus, CloudImage } from '../types';
-import { STORAGE_KEY, ID_PREFIX } from '../constants';
+import { Story, Folder, CloudImage } from '../types';
+import { STORAGE_KEY } from '../constants';
 
 export interface AppData {
   stories: Story[];
@@ -14,9 +14,15 @@ const DEFAULT_DATA: AppData = {
   cloudImages: [],
 };
 
-export const loadData = (): AppData => {
+// Obtenemos una clave única basada en el ID del usuario para particionar el almacenamiento
+const getUserStorageKey = (userId?: string) => {
+  return userId ? `${STORAGE_KEY}_user_${userId}` : `${STORAGE_KEY}_guest`;
+};
+
+export const loadData = (userId?: string): AppData => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getUserStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (!raw) return DEFAULT_DATA;
     const parsed = JSON.parse(raw);
     return {
@@ -28,10 +34,13 @@ export const loadData = (): AppData => {
   }
 };
 
-export const saveData = (data: AppData) => {
+export const saveData = (data: AppData, userId?: string) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {}
+    const key = getUserStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error("Error al guardar datos de autor:", e);
+  }
 };
 
 export const generateId = (prefix: string): string => {
@@ -39,6 +48,7 @@ export const generateId = (prefix: string): string => {
 };
 
 export const countWords = (text: string): number => {
+  if (!text) return 0;
   const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   if (!cleanText) return 0;
   return cleanText.split(/\s+/).length;
