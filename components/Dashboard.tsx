@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Icons } from './Icon';
 import { CloudImage } from '../types';
@@ -22,14 +23,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalBytes = cloudImages.reduce((acc, img) => acc + img.size, 0);
-  const maxBytes = 100 * 1024 * 1024 * 1024; // 100 GB estéticos
+  const maxBytes = 10 * 1024 * 1024 * 1024; // Ajustado a 10 GB
   const storagePercentage = (totalBytes / maxBytes) * 100;
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    // Fix: Explicitly type the file parameter to avoid 'unknown' type errors.
     Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -66,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       icon: <Icons.Cloud size={14} />,
       action: () => setActiveModal('cloud'),
       primary: false,
-      extra: `${formatSize(totalBytes)} / 100GB`
+      extra: `${formatSize(totalBytes)} / 10GB`
     },
     {
       id: 'characters',
@@ -100,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     {
       id: 'updates',
       title: 'v1.6.0',
-      description: 'Nube Activa',
+      description: 'Nube Optimizada',
       icon: <Icons.Alert size={14} />,
       notify: true,
       action: () => setActiveModal('updates')
@@ -226,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                <div className="space-y-2 flex-1 mr-8">
                   <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
                     <span>Espacio en Nube</span>
-                    <span>{formatSize(totalBytes)} / 100 GB</span>
+                    <span>{formatSize(totalBytes)} / 10 GB</span>
                   </div>
                   <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                     <div 
@@ -295,7 +295,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </Modal>
       )}
 
-      {/* Otros modales simplificados para brevedad */}
       {activeModal === 'no-ai' && (
         <Modal title="Human-First" onClose={() => setActiveModal(null)}>
           <div className="py-10 text-center italic text-xl font-serif">
