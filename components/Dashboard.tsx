@@ -7,7 +7,7 @@ interface DashboardProps {
   onEnterCharacters: () => void;
 }
 
-type ModalType = 'docs' | 'usage' | 'updates' | 'no-ai' | null;
+type ModalType = 'docs' | 'usage' | 'updates' | 'no-ai' | 'credits' | null;
 
 export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio, onEnterCharacters }) => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -35,6 +35,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio, onEnterChar
       description: 'Sin Algoritmos',
       icon: <Icons.NoAI size={14} />,
       action: () => setActiveModal('no-ai')
+    },
+    {
+      id: 'credits',
+      title: 'Créditos',
+      description: 'Creadores',
+      icon: <Icons.Book size={14} />,
+      action: () => setActiveModal('credits')
     },
     {
       id: 'docs',
@@ -103,7 +110,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio, onEnterChar
         </div>
 
         <div className="mb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
             {sections.map((sec) => (
               <button 
                 key={sec.id}
@@ -214,6 +221,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onEnterStudio, onEnterChar
             <p className="text-[10px] uppercase tracking-[0.3em] font-black opacity-40 leading-relaxed">
               En StoryCraft Studio, prohibimos el uso de modelos generativos.<br/>Abogamos por la belleza de la errata humana.
             </p>
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === 'credits' && (
+        <Modal title="Créditos del Studio" onClose={() => setActiveModal(null)}>
+          <div className="space-y-12 py-8 text-center">
+            <div className="space-y-6">
+              <p className="text-[10px] uppercase tracking-[0.5em] font-black opacity-30 mb-8">Concepto y Desarrollo</p>
+              <div className="space-y-4">
+                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">SAM VERCE</p>
+                <div className="h-[1px] w-4 bg-ink-200 mx-auto opacity-30"></div>
+                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">SAMUEL CASSERES</p>
+                <div className="h-[1px] w-4 bg-ink-200 mx-auto opacity-30"></div>
+                <p className="text-4xl font-serif italic text-ink-950 dark:text-white tracking-tighter">NADIA CAROLINA</p>
+              </div>
+            </div>
+            <div className="pt-10">
+              <p className="text-[8px] font-mono text-ink-400 uppercase tracking-widest italic leading-relaxed">
+                Hecho con la convicción de que<br/>la tecnología debe servir a la pluma.
+              </p>
+            </div>
           </div>
         </Modal>
       )}
