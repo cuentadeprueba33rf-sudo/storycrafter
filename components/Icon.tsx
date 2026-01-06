@@ -1,0 +1,79 @@
+import React from 'react';
+import {
+  BookOpen,
+  Folder,
+  Plus,
+  MoreVertical,
+  Search,
+  ArrowLeft,
+  Save,
+  Trash2,
+  FileText,
+  Settings,
+  Moon,
+  Sun,
+  Grid,
+  List,
+  ChevronRight,
+  FolderOpen,
+  Edit3,
+  Copy,
+  Layout,
+  Type,
+  Move,
+  CornerUpLeft,
+  PenTool,
+  Share2,
+  Check,
+  ZapOff,
+  Info,
+  Bell,
+  Terminal,
+  Home
+} from 'lucide-react';
+
+const FolderPlus = ({ size = 24 }: { size?: number | string }) => {
+  const numericSize = typeof size === 'number' ? size : parseInt(String(size), 10) || 24;
+  return (
+    <div className="relative inline-flex">
+      <Folder size={size} strokeWidth={1.5} />
+      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-[1px]">
+        <Plus size={numericSize / 2} strokeWidth={3} />
+      </div>
+    </div>
+  );
+};
+
+export const Icons = {
+  Book: BookOpen,
+  Folder,
+  FolderOpen,
+  Plus,
+  More: MoreVertical,
+  Search,
+  Back: ArrowLeft,
+  Save,
+  Delete: Trash2,
+  File: FileText,
+  Settings,
+  Moon,
+  Sun,
+  Grid,
+  List,
+  ChevronRight,
+  Edit: Edit3,
+  Copy,
+  Layout,
+  Type,
+  Move,
+  UpLevel: CornerUpLeft,
+  Pen: PenTool,
+  Share: Share2,
+  Check,
+  NoAI: ZapOff,
+  Docs: Info,
+  Alert: Bell,
+  Terminal,
+  Home,
+  FolderPlus
+};
