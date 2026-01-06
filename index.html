@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>StoryCraft Studio | Professional Workspace</title>
+    <title>StoryCraft | Institutional Creative Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -13,7 +13,7 @@
           extend: {
             colors: {
               ink: {
-                50: '#faf9f6', /* Eggshell white */
+                50: '#faf9f6',
                 100: '#f4f4f5',
                 200: '#e4e4e7',
                 300: '#d4d4d8',
@@ -22,7 +22,7 @@
                 600: '#52525b',
                 700: '#3f3f46',
                 800: '#27272a',
-                900: '#121214', /* Deep ink */
+                900: '#121214',
                 950: '#0a0a0b',
               }
             },
@@ -36,17 +36,21 @@
       }
     </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@100;400&display=swap');
       
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.3); border-radius: 10px; }
-      .dark ::-webkit-scrollbar-thumb { background: rgba(63, 63, 70, 0.3); }
+      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
       
-      body { font-feature-settings: "ss01", "cv01"; text-rendering: optimizeLegibility; }
+      body { 
+        font-feature-settings: "ss01", "cv01"; 
+        text-rendering: optimizeLegibility; 
+        -webkit-font-smoothing: antialiased;
+      }
+      
       #root { min-height: 100vh; position: relative; z-index: 1; }
 
-      /* Grain Texture Overlay */
+      /* The Architectural Noise */
       body::before {
         content: "";
         position: fixed;
@@ -55,33 +59,30 @@
         width: 100%;
         height: 100%;
         background-image: url("https://grainy-gradients.vercel.app/noise.svg");
-        opacity: 0.04;
+        opacity: 0.03;
         pointer-events: none;
         z-index: 9999;
+        filter: contrast(150%) brightness(100%);
       }
-      .dark body::before { opacity: 0.07; filter: invert(1); }
 
-      [contenteditable]:empty:before {
-        content: attr(data-placeholder);
-        color: #d4d4d8;
-        cursor: text;
+      @keyframes elite-reveal {
+        from { opacity: 0; transform: translateY(30px) scale(0.98); filter: blur(10px); }
+        to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
       }
-      .dark [contenteditable]:empty:before { color: #3f3f46; }
-
-      [contenteditable] p { margin-bottom: 1.5rem; position: relative; min-height: 1.5em; }
-      
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-      .glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+      .animate-elite { 
+        animation: elite-reveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
       }
-      .dark .glass-card {
-        background: rgba(18, 18, 20, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+
+      /* Custom cursor and hover effects for extreme polish */
+      .hover-lift {
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .hover-lift:hover {
+        transform: translateY(-8px);
+      }
+
+      .text-glow {
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
       }
     </style>
   <script type="importmap">
@@ -96,7 +97,7 @@
 }
 </script>
 </head>
-  <body class="bg-ink-50 dark:bg-black text-ink-900 dark:text-ink-100 transition-colors duration-200 overflow-hidden font-sans antialiased">
+  <body class="bg-[#050505] text-white overflow-hidden font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
