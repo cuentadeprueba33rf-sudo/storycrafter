@@ -26,9 +26,11 @@ function App() {
   const [communityStory, setCommunityStory] = useState<Story | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [editorTheme, setEditorTheme] = useState<EditorTheme>('LIGHT');
+  const [isStudioDarkMode, setIsStudioDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'RECOVERY'>('LOGIN');
 
   const isAdmin = session?.user?.email === ADMIN_EMAIL;
 
@@ -38,8 +40,13 @@ function App() {
       setSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('RECOVERY');
+        setShowAuth(true);
+      }
     });
     
     return () => subscription.unsubscribe();
@@ -50,9 +57,6 @@ function App() {
     setIsLoading(true);
     const userId = session?.user?.id;
     
-    // Al cambiar de usuario o cerrar sesión:
-    // - Cargamos los datos del nuevo usuario (o del invitado)
-    // - Reseteamos la vista activa si cerramos sesión para evitar fugas de datos
     const loaded = loadData(userId);
     setData(loaded);
     
@@ -73,16 +77,21 @@ function App() {
     }
   }, [data, isLoading, session]);
 
-  // 4. Modo oscuro basado en contexto
+  // 4. Lógica de Modo Oscuro: Dashboard SIEMPRE claro, Studio SEGÚN PREFERENCIA
   useEffect(() => {
-    if ((view === 'EDITOR' && editorTheme === 'DARK') || view === 'ADMIN_USERS') {
-      document.documentElement.classList.add('dark');
-    } else if (view !== 'EDITOR' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-       document.documentElement.classList.add('dark');
-    } else {
+    if (view === 'HOME' || view === 'FEED') {
       document.documentElement.classList.remove('dark');
+    } else if (view === 'ADMIN_USERS') {
+      document.documentElement.classList.add('dark');
+    } else {
+      // Estamos en LIBRARY o EDITOR
+      if (isStudioDarkMode || (view === 'EDITOR' && editorTheme === 'DARK')) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
-  }, [view, editorTheme]);
+  }, [view, isStudioDarkMode, editorTheme]);
 
   const getDisplayName = () => {
     return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Invitado";
@@ -157,19 +166,18 @@ function App() {
   const handleLogout = async () => {
     if(confirm("¿Seguro que deseas cerrar tu sesión de autor? Tus obras locales se guardarán de forma segura en este dispositivo.")) {
       await supabase.auth.signOut();
-      // El useEffect de session se encargará del resto (limpiar datos y redirigir)
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#050505] text-white">
+      <div className="flex flex-col items-center justify-center h-screen bg-white text-ink-900">
         <div className="flex flex-col items-center animate-pulse">
-          <div className="mb-8 p-8 border border-white/5 rounded-[2.5rem] bg-white/[0.02]">
+          <div className="mb-8 p-8 border border-black/5 rounded-[2.5rem] bg-black/[0.02]">
             <Icons.Pen size={40} strokeWidth={1} className="text-amber-500" />
           </div>
-          <h1 className="text-2xl font-serif italic tracking-widest mb-3">Sincronizando Archivos</h1>
-          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-white/20">Accediendo a la Bóveda del Autor</div>
+          <h1 className="text-2xl font-serif italic tracking-widest mb-3">StoryCraft</h1>
+          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-ink-300">Sincronizando Archivos</div>
         </div>
       </div>
     );
@@ -178,8 +186,17 @@ function App() {
   const activeStory = communityStory || data.stories.find(s => s.id === activeStoryId);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#050505]">
-      {showAuth && <Auth supabase={supabase} onClose={() => setShowAuth(false)} />}
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-[#050505] transition-colors duration-500">
+      {showAuth && (
+        <Auth 
+          supabase={supabase} 
+          onClose={() => {
+            setShowAuth(false);
+            setAuthMode('LOGIN');
+          }} 
+          initialMode={authMode}
+        />
+      )}
       
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         {view === 'HOME' && (
@@ -190,7 +207,10 @@ function App() {
             cloudImages={data.cloudImages}
             onUpdateCloud={handleUpdateCloud}
             session={session}
-            onAuthOpen={() => setShowAuth(true)}
+            onAuthOpen={() => {
+              setAuthMode('LOGIN');
+              setShowAuth(true);
+            }}
             onLogout={handleLogout}
             isAdmin={isAdmin}
           />
@@ -231,6 +251,8 @@ function App() {
               alert("Enlace copiado.");
             }}
             onBackHome={() => setView('HOME')}
+            isDarkMode={isStudioDarkMode}
+            onToggleDarkMode={() => setIsStudioDarkMode(!isStudioDarkMode)}
           />
         )}
         {view === 'FEED' && (
@@ -258,6 +280,8 @@ function App() {
             cloudImages={data.cloudImages}
             isUserLoggedIn={!!session}
             readOnly={!!communityStory}
+            isDarkMode={isStudioDarkMode}
+            onToggleDarkMode={() => setIsStudioDarkMode(!isStudioDarkMode)}
           />
         )}
         {view === 'ADMIN_USERS' && isAdmin && (

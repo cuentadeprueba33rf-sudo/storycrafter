@@ -17,6 +17,8 @@ interface LibraryProps {
   onMoveStory: (storyId: string, targetFolderId: string | null) => void;
   onShareStory: (storyId: string) => void;
   onBackHome: () => void;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
 const StatusBadge: React.FC<{ status: StoryStatus }> = ({ status }) => {
@@ -45,7 +47,9 @@ export const Library: React.FC<LibraryProps> = ({
   onDeleteFolder,
   onMoveStory,
   onShareStory,
-  onBackHome
+  onBackHome,
+  isDarkMode,
+  onToggleDarkMode
 }) => {
   const [viewMode, setViewMode] = useState<LibraryViewMode>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,7 +71,7 @@ export const Library: React.FC<LibraryProps> = ({
   }, [stories, currentFolderId, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-ink-50 dark:bg-black/95">
+    <div className="flex flex-col h-full bg-ink-50 dark:bg-black/95 transition-colors duration-500">
       <div className="px-6 md:px-12 py-8 bg-white dark:bg-black border-b border-ink-200 dark:border-ink-800 sticky top-0 z-20 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center gap-4">
@@ -77,7 +81,14 @@ export const Library: React.FC<LibraryProps> = ({
               title="Volver al Inicio"
             >
               <Icons.Home size={18} />
-              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[8px] font-black uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Inicio</div>
+            </button>
+
+            <button 
+              onClick={onToggleDarkMode} 
+              className="p-2.5 bg-ink-100 dark:bg-ink-900 text-ink-600 dark:text-ink-400 rounded-xl hover:scale-110 transition-all border border-black/5"
+              title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+            >
+              {isDarkMode ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
             </button>
 
              {currentFolderId && (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Story, Page, Character, Genre, StoryStatus, EditorTheme, CloudImage } from '../types';
 import { Icons } from './Icon';
@@ -14,6 +15,8 @@ interface EditorProps {
   cloudImages: CloudImage[];
   isUserLoggedIn: boolean;
   readOnly?: boolean;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
 type InspectorTab = 'gestion' | 'biblia';
@@ -27,7 +30,9 @@ export const Editor: React.FC<EditorProps> = ({
   onChangeTheme,
   cloudImages,
   isUserLoggedIn,
-  readOnly = false
+  readOnly = false,
+  isDarkMode,
+  onToggleDarkMode
 }) => {
   const [story, setStory] = useState<Story>({ 
     ...initialStory, 
@@ -46,6 +51,21 @@ export const Editor: React.FC<EditorProps> = ({
   const typewriterAudioRef = useRef<HTMLAudioElement>(null);
   
   const activePage = story.pages.find(p => p.id === activePageId);
+
+  // SEGURIDAD: Prevenir refresco accidental o cierre de pestaña
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !readOnly) {
+        const message = "Tienes cambios sin guardar en tu manuscrito. ¿Seguro que deseas salir?";
+        e.preventDefault();
+        e.returnValue = message; // Estándar para la mayoría de navegadores
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty, readOnly]);
 
   // Protección contra copia y robo en modo lectura
   useEffect(() => {
@@ -104,6 +124,17 @@ export const Editor: React.FC<EditorProps> = ({
     setTimeout(() => setIsSaving(false), 800);
   };
 
+  // SEGURIDAD: Confirmación al pulsar el botón de volver atrás
+  const handleSafeClose = () => {
+    if (isDirty && !readOnly) {
+      if (confirm("Tienes cambios recientes que no se han sincronizado permanentemente. ¿Deseas salir del estudio de todos modos?")) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   const finalizePublication = (asAnonymous: boolean) => {
     const finalAuthorName = asAnonymous ? "Anónimo" : (initialStory.authorName || "Escritor");
     const updatedStory = { ...story, isPublished: true, authorName: finalAuthorName };
@@ -135,20 +166,28 @@ export const Editor: React.FC<EditorProps> = ({
 
   const totalWords = story.pages.reduce((acc, p) => acc + countWords(p.content), 0);
 
+  // Lógica mejorada del "Papel": Si el modo oscuro global está activo, forzamos negro.
+  const getPaperStyles = () => {
+    if (isDarkMode) return 'bg-black text-white border border-white/5';
+    if (theme === 'DARK') return 'bg-zinc-900 text-white';
+    if (theme === 'SEPIA') return 'bg-[#f4ecd8] text-[#5d4037]';
+    return 'bg-white text-ink-900 shadow-sm';
+  };
+
   return (
-    <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative ${theme === 'DARK' ? 'bg-black text-white' : theme === 'SEPIA' ? 'bg-[#f4ecd8] text-[#5d4037]' : 'bg-white text-ink-900'}`}>
+    <div className={`flex flex-col h-full transition-colors duration-500 overflow-hidden relative bg-white dark:bg-black text-ink-900 dark:text-white`}>
       <audio ref={typewriterAudioRef} src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto" />
 
-      {/* Modal de Publicación Inicial */}
+      {/* Modal de Publicación */}
       {showPublishModal && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-ink-950/70 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-black/5 flex flex-col items-center text-center space-y-8">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-black/5 dark:border-white/5 flex flex-col items-center text-center space-y-8">
             <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center">
               <Icons.Publish size={40} />
             </div>
             <div>
               <h3 className="text-2xl font-serif font-bold dark:text-white">Protocolo de Firma</h3>
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-40 mt-3">Publicación en Comunidad</p>
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-40 mt-3 text-ink-900 dark:text-white">Publicación en Comunidad</p>
             </div>
             <div className="w-full space-y-4">
               <button 
@@ -165,7 +204,7 @@ export const Editor: React.FC<EditorProps> = ({
               </button>
               <button 
                 onClick={() => setShowPublishModal(false)}
-                className="w-full py-3 text-[9px] font-black uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
+                className="w-full py-3 text-[9px] font-black uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity text-ink-900 dark:text-white"
               >
                 Cancelar
               </button>
@@ -175,15 +214,15 @@ export const Editor: React.FC<EditorProps> = ({
       )}
 
       {!zenMode && (
-        <header className="flex items-center justify-between px-6 py-4 border-b border-black/5 z-[100] shrink-0 bg-inherit backdrop-blur-md">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-black/5 dark:border-white/5 z-[100] shrink-0 bg-white dark:bg-black transition-colors duration-500">
           <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.Back size={18} /></button>
+            <button onClick={handleSafeClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-ink-900 dark:text-white"><Icons.Back size={18} /></button>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-serif font-bold truncate max-w-[200px]">{story.title}</span>
+                <span className="text-xs font-serif font-bold truncate max-w-[200px] text-ink-900 dark:text-white">{story.title}</span>
                 {story.isPublished && <Icons.Check size={10} className="text-amber-500" strokeWidth={4} />}
               </div>
-              <span className="text-[9px] font-mono uppercase tracking-widest opacity-40">
+              <span className="text-[9px] font-mono uppercase tracking-widest opacity-40 text-ink-400">
                 {readOnly ? `Leyendo a: ${story.authorName}` : `${totalWords} palabras`}
               </span>
             </div>
@@ -192,19 +231,27 @@ export const Editor: React.FC<EditorProps> = ({
           <div className="flex items-center gap-3">
             {!readOnly && (
               <div className="flex items-center gap-2">
-                 {isDirty && <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 animate-pulse hidden md:block">Cambios sin guardar</span>}
+                 <button 
+                  onClick={onToggleDarkMode} 
+                  className={`p-2.5 rounded-xl transition-all ${isDarkMode ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-black/5 text-ink-400 hover:text-ink-900'}`}
+                  title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+                >
+                  {isDarkMode ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
+                </button>
+
+                 {isDirty && <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 animate-pulse hidden md:block px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">Sin Guardar</span>}
                  <button 
                   onClick={handleManualSave}
-                  className={`p-2.5 rounded-xl flex items-center gap-2 transition-all ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'opacity-30'}`}
+                  className={`p-2.5 rounded-xl flex items-center gap-2 transition-all ${isDirty ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-lg scale-105' : 'bg-black/5 text-ink-400 opacity-30'}`}
                 >
                   <Icons.Save size={18} />
-                  <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{isSaving ? 'Fijando...' : 'Sincronizar'}</span>
+                  <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{isSaving ? '...' : 'Sincronizar'}</span>
                 </button>
               </div>
             )}
             <button 
               onClick={() => setShowInspector(!showInspector)} 
-              className={`p-2.5 rounded-xl transition-all ${showInspector ? 'bg-amber-500 text-white shadow-lg' : 'hover:bg-black/5'}`}
+              className={`p-2.5 rounded-xl transition-all ${showInspector ? 'bg-amber-500 text-white shadow-lg' : 'bg-black/5 text-ink-400'}`}
             >
               <Icons.Magic size={18} />
             </button>
@@ -212,12 +259,13 @@ export const Editor: React.FC<EditorProps> = ({
         </header>
       )}
 
-      <div className="flex-1 flex overflow-hidden relative">
-        <main className="flex-1 flex flex-col min-w-0 relative bg-inherit z-10">
+      <div className="flex-1 flex overflow-hidden relative bg-white dark:bg-black transition-colors duration-500">
+        <main className="flex-1 flex flex-col min-w-0 relative z-10">
           <div className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-500 ${zenMode ? 'p-10 md:p-32' : 'p-6 md:p-20'}`}>
-            <div className={`max-w-2xl mx-auto min-h-full flex flex-col ${readOnly ? 'select-none pointer-events-none' : ''}`}>
+            {/* El Papel (Hoja de Escritura) */}
+            <div className={`max-w-2xl mx-auto min-h-full flex flex-col p-10 md:p-16 rounded-[2rem] transition-all duration-500 ${getPaperStyles()} ${readOnly ? 'select-none pointer-events-none' : ''}`}>
               <input 
-                className="w-full font-serif font-bold bg-transparent outline-none border-none focus:ring-0 p-0 text-3xl md:text-5xl mb-12 tracking-tighter"
+                className="w-full font-serif font-bold bg-transparent outline-none border-none focus:ring-0 p-0 text-3xl md:text-5xl mb-12 tracking-tighter placeholder:opacity-20"
                 value={activePage?.title || ''}
                 readOnly={readOnly}
                 onChange={(e) => { 
@@ -239,12 +287,15 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
 
           {!zenMode && (
-            <div className="shrink-0 border-t border-black/5 px-4 pt-4 pb-12 flex items-center justify-center bg-inherit/90 backdrop-blur-md z-50">
+            <div className="shrink-0 border-t border-black/5 dark:border-white/5 px-4 pt-4 pb-12 flex items-center justify-center bg-white dark:bg-black transition-colors duration-500 z-50">
               <div className="max-w-4xl w-full flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-4">
                 {story.pages.sort((a,b) => a.order - b.order).map((p, idx) => (
                   <button 
-                    key={p.id} onClick={() => setActivePageId(p.id)}
-                    className={`shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activePageId === p.id ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-xl scale-110' : 'bg-black/5 hover:bg-black/10'}`}
+                    key={p.id} onClick={() => {
+                       if (isDirty && activePageId !== p.id) handleManualSave();
+                       setActivePageId(p.id);
+                    }}
+                    className={`shrink-0 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activePageId === p.id ? 'bg-ink-900 dark:bg-white text-white dark:text-black shadow-xl scale-110' : 'bg-black/5 dark:bg-white/5 text-ink-900 dark:text-white hover:bg-black/10'}`}
                   >
                     {idx + 1}. {p.title || 'Escena'}
                   </button>
@@ -262,30 +313,28 @@ export const Editor: React.FC<EditorProps> = ({
           )}
         </main>
 
-        <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden'} ${theme === 'DARK' ? 'bg-ink-950' : 'bg-white'} border-l border-black/5 shadow-2xl`}>
+        <aside className={`fixed lg:relative inset-y-0 right-0 z-[120] transition-all duration-500 ease-in-out ${showInspector ? 'w-full md:w-80 lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden'} bg-white dark:bg-zinc-950 border-l border-black/5 dark:border-white/5 shadow-2xl`}>
           <div className="flex flex-col h-full w-full">
-            <div className="p-8 border-b border-black/5 flex justify-between items-center bg-black/[0.02]">
+            <div className="p-8 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/[0.02] dark:bg-white/[0.02]">
               <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">Gestión de Obra</h2>
-              <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors"><Icons.X size={18} /></button>
+              <button onClick={() => setShowInspector(false)} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-ink-900 dark:text-white"><Icons.X size={18} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-12">
-              {/* Card de Estado Público y Botón de Actualizar */}
-              <div className="p-8 bg-black/5 dark:bg-white/5 rounded-[2.5rem] border border-black/5 space-y-6 text-center">
+              <div className="p-8 bg-black/5 dark:bg-white/5 rounded-[2.5rem] border border-black/5 dark:border-white/5 space-y-6 text-center">
                 <div className="flex flex-col items-center gap-4">
                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors ${story.isPublished ? 'bg-amber-500 text-white' : 'bg-ink-100 dark:bg-ink-800 text-ink-400'}`}>
                       <Icons.Globe size={28} />
                    </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xl font-serif italic font-bold">
+                  <p className="text-xl font-serif italic font-bold text-ink-900 dark:text-white">
                     {story.isPublished ? (story.authorName === "Anónimo" ? "Firma Anónima" : story.authorName) : "Borrador Privado"}
                   </p>
-                  <p className="text-[9px] font-mono opacity-40 uppercase tracking-widest">Estado en Comunidad</p>
+                  <p className="text-[9px] font-mono opacity-40 uppercase tracking-widest text-ink-400">Estado en Comunidad</p>
                 </div>
                 {!readOnly && (
                   <div className="space-y-3 pt-4">
-                    {/* Botón Maestro de Guardado / Actualización */}
                     <button 
                       onClick={() => {
                         if (!isUserLoggedIn) return alert("Inicia sesión para usar el feed.");
@@ -298,9 +347,8 @@ export const Editor: React.FC<EditorProps> = ({
                       }}
                       className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-3 ${story.isPublished ? 'bg-amber-500 text-white' : 'bg-ink-900 dark:bg-white text-white dark:text-black'}`}
                     >
-                      {/* Fixed: Use Icons.Reset instead of Icons.RotateCcw as defined in components/Icon.tsx */}
                       {story.isPublished ? <Icons.Reset size={16} /> : <Icons.Plus size={16} />}
-                      {story.isPublished ? 'Actualizar en Comunidad' : 'Publicar Ahora'}
+                      {story.isPublished ? 'Actualizar Feed' : 'Publicar Ahora'}
                     </button>
                     
                     {story.isPublished && (
@@ -315,11 +363,10 @@ export const Editor: React.FC<EditorProps> = ({
                 )}
               </div>
 
-              {/* Título de la Obra Editable */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Título del Manuscrito</label>
-                  {!readOnly && <Icons.Edit size={12} className="opacity-20" />}
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 text-ink-400">Título</label>
+                  {!readOnly && <Icons.Edit size={12} className="opacity-20 text-ink-400" />}
                 </div>
                 <input 
                   type="text"
@@ -330,16 +377,15 @@ export const Editor: React.FC<EditorProps> = ({
                     setStory(prev => ({ ...prev, title: e.target.value }));
                     setIsDirty(true);
                   }}
-                  className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-sm font-serif font-bold outline-none focus:ring-2 focus:ring-amber-500/30 transition-all"
+                  className="w-full p-5 bg-black/5 dark:bg-white/5 border-none rounded-2xl text-sm font-serif font-bold outline-none focus:ring-2 focus:ring-amber-500/30 transition-all text-ink-900 dark:text-white"
                   placeholder="Sin título..."
                 />
               </div>
 
-              {/* Sinopsis Editable */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Sinopsis del Libro</label>
-                  {!readOnly && <Icons.Edit size={12} className="opacity-20" />}
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 text-ink-400">Sinopsis</label>
+                  {!readOnly && <Icons.Edit size={12} className="opacity-20 text-ink-400" />}
                 </div>
                 <textarea 
                   value={story.synopsis}
@@ -349,37 +395,25 @@ export const Editor: React.FC<EditorProps> = ({
                     setStory(prev => ({ ...prev, synopsis: e.target.value }));
                     setIsDirty(true);
                   }}
-                  className="w-full p-6 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-serif italic leading-relaxed min-h-[180px] outline-none resize-none focus:ring-2 focus:ring-amber-500/30 transition-all"
+                  className="w-full p-6 bg-black/5 dark:bg-white/5 border-none rounded-3xl text-xs font-serif italic leading-relaxed min-h-[180px] outline-none resize-none focus:ring-2 focus:ring-amber-500/30 transition-all text-ink-900 dark:text-white"
                   placeholder="¿De qué trata este legado?..."
                 />
               </div>
 
-              {/* Selección de Géneros */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Géneros Sugeridos</label>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 text-ink-400">Géneros</label>
                 <div className="flex flex-wrap gap-2">
                   {ALL_GENRES.map(genre => (
                     <button
                       key={genre}
                       onClick={() => toggleGenre(genre as Genre)}
                       disabled={readOnly}
-                      className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all border ${story.genres.includes(genre as Genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-black/5 border-black/5 opacity-40 hover:opacity-100'}`}
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all border ${story.genres.includes(genre as Genre) ? 'bg-ink-900 dark:bg-white text-white dark:text-black border-transparent' : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 text-ink-900 dark:text-white opacity-40 hover:opacity-100'}`}
                     >
                       {genre}
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div className="pt-12 border-t border-black/5 flex flex-col gap-2">
-                 <div className="flex justify-between items-center opacity-30">
-                   <span className="text-[9px] font-black uppercase tracking-widest">Creado el</span>
-                   <span className="text-[10px] font-mono">{new Date(story.createdAt).toLocaleDateString()}</span>
-                 </div>
-                 <div className="flex justify-between items-center opacity-30">
-                   <span className="text-[9px] font-black uppercase tracking-widest">Última Firma</span>
-                   <span className="text-[10px] font-mono">{new Date(story.updatedAt).toLocaleTimeString()}</span>
-                 </div>
               </div>
             </div>
           </div>
