@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { createClient, Session } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { loadData, saveData, generateId, AppData } from './utils/storage';
 import { Story, Folder, ViewMode, Genre, StoryStatus, EditorTheme, CloudImage } from './types';
 import { ID_PREFIX } from './constants';
@@ -8,16 +8,14 @@ import { Library } from './components/Library';
 import { Editor } from './components/Editor';
 import { Dashboard } from './components/Dashboard';
 import { Feed } from './components/Feed';
-import { Auth } from './components/Auth';
-import { AdminPanel } from './components/AdminPanel';
 import { Icons } from './components/Icon';
 
-const supabase = createClient(
-  "https://hnhhklgfirvlrvivnzva.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuaGhrbGdmaXJ2bHJ2aXZuenZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MjQ2NTcsImV4cCI6MjA4MzMwMDY1N30.bhtmLRhKX0uzHEaFnui71Gvt89eXncA3lpzEfHUoxS4"
-);
-
-const ADMIN_EMAIL = "samuelcasseresbx@gmail.com";
+// Configuración de Servidor para Publicación (Comunidad)
+const supabaseUrl = 'https://your-project.supabase.co'; 
+const supabaseKey = 'your-anon-key';
+// Nota: En un entorno real, estas variables se inyectan automáticamente. 
+// Para el funcionamiento del Feed, asumimos que el cliente está disponible.
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
   const [data, setData] = useState<AppData>({ stories: [], folders: [], cloudImages: [] });
@@ -28,74 +26,33 @@ function App() {
   const [editorTheme, setEditorTheme] = useState<EditorTheme>('LIGHT');
   const [isStudioDarkMode, setIsStudioDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'RECOVERY'>('LOGIN');
 
-  const isAdmin = session?.user?.email === ADMIN_EMAIL;
-
-  // 1. Escuchar cambios de autenticación
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        setAuthMode('RECOVERY');
-        setShowAuth(true);
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // 2. Reaccionar al cambio de sesión: CARGAR DATOS ESPECÍFICOS
+  // Cargar datos locales al iniciar
   useEffect(() => {
     setIsLoading(true);
-    const userId = session?.user?.id;
-    
-    const loaded = loadData(userId);
+    const loaded = loadData();
     setData(loaded);
-    
-    if (!userId) {
-      setView('HOME');
-      setActiveStoryId(null);
-      setCommunityStory(null);
-    }
-
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
-  }, [session]);
+  }, []);
 
-  // 3. Guardar datos solo cuando el estado de datos o la sesión cambian
+  // Guardar datos automáticamente
   useEffect(() => {
     if (!isLoading) {
-      saveData(data, session?.user?.id);
+      saveData(data);
     }
-  }, [data, isLoading, session]);
+  }, [data, isLoading]);
 
-  // 4. Lógica de Modo Oscuro: Dashboard SIEMPRE claro, Studio SEGÚN PREFERENCIA
+  // Lógica de Modo Oscuro Global (Afecta a todo el documento)
   useEffect(() => {
-    if (view === 'HOME' || view === 'FEED') {
-      document.documentElement.classList.remove('dark');
-    } else if (view === 'ADMIN_USERS') {
+    if (isStudioDarkMode) {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('bg-black');
     } else {
-      // Estamos en LIBRARY o EDITOR
-      if (isStudioDarkMode || (view === 'EDITOR' && editorTheme === 'DARK')) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('bg-black');
     }
-  }, [view, isStudioDarkMode, editorTheme]);
-
-  const getDisplayName = () => {
-    return session?.user?.user_metadata?.display_name || session?.user?.email?.split('@')[0] || "Invitado";
-  };
+  }, [isStudioDarkMode]);
 
   const handleUpdateCloud = (cloudImages: CloudImage[]) => {
     setData(prev => ({ ...prev, cloudImages }));
@@ -117,7 +74,7 @@ function App() {
       pages: [{ id: generateId(ID_PREFIX.PAGE), title: 'Capítulo I', content: '', order: 0 }],
       characters: [],
       isPublished: false,
-      authorName: getDisplayName()
+      authorName: "Autor Local"
     };
     setData(prev => ({ ...prev, stories: [newStory, ...prev.stories] }));
     setActiveStoryId(newStory.id);
@@ -126,48 +83,30 @@ function App() {
   };
 
   const handleSaveStory = useCallback(async (updatedStory: Story) => {
-    if (communityStory && updatedStory.id === communityStory.id) {
-       setCommunityStory(updatedStory);
-       return; 
-    }
-
+    // 1. Guardar localmente siempre
     setData(prev => ({
       ...prev,
       stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
     }));
 
-    if (session) {
-      if (updatedStory.isPublished) {
-        try {
-          const payload = {
+    // 2. Si la obra está "Publicada", intentar sincronizar con el servidor
+    if (updatedStory.isPublished) {
+      try {
+        await supabase
+          .from('public_stories')
+          .upsert({
             id: updatedStory.id,
             title: updatedStory.title,
             synopsis: updatedStory.synopsis,
             author_name: updatedStory.authorName,
-            genres: updatedStory.genres,
-            status: updatedStory.status,
-            content_json: updatedStory.pages,
-            updated_at: new Date().toISOString(),
-            user_id: session.user.id,
-            is_admin: isAdmin
-          };
-          await supabase.from('public_stories').upsert(payload, { onConflict: 'id' });
-        } catch (e) {
-          console.error("Error sincronizando con comunidad:", e);
-        }
-      } else {
-        try {
-          await supabase.from('public_stories').delete().eq('id', updatedStory.id);
-        } catch (e) {}
+            content_json: JSON.stringify(updatedStory.pages),
+            updated_at: new Date().toISOString()
+          });
+      } catch (e) {
+        console.error("Error sincronizando con servidor:", e);
       }
     }
-  }, [session, isAdmin, communityStory]);
-
-  const handleLogout = async () => {
-    if(confirm("¿Seguro que deseas cerrar tu sesión de autor? Tus obras locales se guardarán de forma segura en este dispositivo.")) {
-      await supabase.auth.signOut();
-    }
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -177,7 +116,7 @@ function App() {
             <Icons.Pen size={40} strokeWidth={1} className="text-amber-500" />
           </div>
           <h1 className="text-2xl font-serif italic tracking-widest mb-3">StoryCraft</h1>
-          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-ink-300">Sincronizando Archivos</div>
+          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-ink-300">Iniciando Estudio Local</div>
         </div>
       </div>
     );
@@ -186,33 +125,14 @@ function App() {
   const activeStory = communityStory || data.stories.find(s => s.id === activeStoryId);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-[#050505] transition-colors duration-500">
-      {showAuth && (
-        <Auth 
-          supabase={supabase} 
-          onClose={() => {
-            setShowAuth(false);
-            setAuthMode('LOGIN');
-          }} 
-          initialMode={authMode}
-        />
-      )}
-      
+    <div className={`flex h-screen overflow-hidden transition-colors duration-500 ${isStudioDarkMode ? 'bg-black' : 'bg-white'}`}>
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         {view === 'HOME' && (
           <Dashboard 
             onEnterStudio={() => setView('LIBRARY')} 
             onEnterExplore={() => setView('FEED')}
-            onEnterAdmin={() => setView('ADMIN_USERS')}
             cloudImages={data.cloudImages}
             onUpdateCloud={handleUpdateCloud}
-            session={session}
-            onAuthOpen={() => {
-              setAuthMode('LOGIN');
-              setShowAuth(true);
-            }}
-            onLogout={handleLogout}
-            isAdmin={isAdmin}
           />
         )}
         {view === 'LIBRARY' && (
@@ -231,9 +151,9 @@ function App() {
               setView('EDITOR'); 
             }}
             onDeleteStory={(id) => {
-              if(confirm("¿Borrar definitivamente este manuscrito?")) {
+              if(confirm("¿Borrar definitivamente este manuscrito? Se eliminará de tu local y del servidor si estaba publicado.")) {
                 setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }));
-                supabase.from('public_stories').delete().eq('id', id).then(() => {});
+                supabase.from('public_stories').delete().eq('id', id);
               }
             }}
             onDeleteFolder={(id) => {
@@ -248,7 +168,7 @@ function App() {
             onMoveStory={(sid, fid) => setData(prev => ({ ...prev, stories: prev.stories.map(s => s.id === sid ? { ...s, folderId: fid } : s) }))}
             onShareStory={(id) => {
               navigator.clipboard.writeText(`${window.location.origin}?story=${id}`);
-              alert("Enlace copiado.");
+              alert("Enlace de obra copiado.");
             }}
             onBackHome={() => setView('HOME')}
             isDarkMode={isStudioDarkMode}
@@ -257,14 +177,13 @@ function App() {
         )}
         {view === 'FEED' && (
           <Feed 
+            supabase={supabase}
+            isAdmin={false}
             onBack={() => setView('HOME')}
             onReadStory={(story) => {
               setCommunityStory(story);
-              setActiveStoryId(story.id);
               setView('EDITOR');
             }}
-            supabase={supabase}
-            isAdmin={isAdmin}
           />
         )}
         {view === 'EDITOR' && activeStory && (
@@ -274,20 +193,14 @@ function App() {
               setCommunityStory(null);
               setView(communityStory ? 'FEED' : 'LIBRARY');
             }} 
-            onShare={() => alert("Compartir activado.")} 
+            onShare={() => alert("Función de compartir enlace activada.")} 
             theme={editorTheme} 
             onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}
-            isUserLoggedIn={!!session}
+            isUserLoggedIn={true}
             readOnly={!!communityStory}
             isDarkMode={isStudioDarkMode}
             onToggleDarkMode={() => setIsStudioDarkMode(!isStudioDarkMode)}
-          />
-        )}
-        {view === 'ADMIN_USERS' && isAdmin && (
-          <AdminPanel 
-            supabase={supabase} 
-            onBack={() => setView('HOME')} 
           />
         )}
       </div>

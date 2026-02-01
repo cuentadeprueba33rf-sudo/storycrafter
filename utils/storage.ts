@@ -14,15 +14,9 @@ const DEFAULT_DATA: AppData = {
   cloudImages: [],
 };
 
-// Obtenemos una clave única basada en el ID del usuario para particionar el almacenamiento
-const getUserStorageKey = (userId?: string) => {
-  return userId ? `${STORAGE_KEY}_user_${userId}` : `${STORAGE_KEY}_guest`;
-};
-
-export const loadData = (userId?: string): AppData => {
+export const loadData = (): AppData => {
   try {
-    const key = getUserStorageKey(userId);
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_DATA;
     const parsed = JSON.parse(raw);
     return {
@@ -34,10 +28,9 @@ export const loadData = (userId?: string): AppData => {
   }
 };
 
-export const saveData = (data: AppData, userId?: string) => {
+export const saveData = (data: AppData) => {
   try {
-    const key = getUserStorageKey(userId);
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
     console.error("Error al guardar datos de autor:", e);
   }
