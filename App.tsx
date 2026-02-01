@@ -10,11 +10,8 @@ import { Dashboard } from './components/Dashboard';
 import { Feed } from './components/Feed';
 import { Icons } from './components/Icon';
 
-// Configuración de Servidor para Publicación (Comunidad)
 const supabaseUrl = 'https://your-project.supabase.co'; 
 const supabaseKey = 'your-anon-key';
-// Nota: En un entorno real, estas variables se inyectan automáticamente. 
-// Para el funcionamiento del Feed, asumimos que el cliente está disponible.
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 function App() {
@@ -27,7 +24,6 @@ function App() {
   const [isStudioDarkMode, setIsStudioDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar datos locales al iniciar
   useEffect(() => {
     setIsLoading(true);
     const loaded = loadData();
@@ -36,14 +32,12 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Guardar datos automáticamente
   useEffect(() => {
     if (!isLoading) {
       saveData(data);
     }
   }, [data, isLoading]);
 
-  // Lógica de Modo Oscuro Global (Afecta a todo el documento)
   useEffect(() => {
     if (isStudioDarkMode) {
       document.documentElement.classList.add('dark');
@@ -83,13 +77,11 @@ function App() {
   };
 
   const handleSaveStory = useCallback(async (updatedStory: Story) => {
-    // 1. Guardar localmente siempre
     setData(prev => ({
       ...prev,
       stories: prev.stories.map(s => s.id === updatedStory.id ? updatedStory : s)
     }));
 
-    // 2. Si la obra está "Publicada", intentar sincronizar con el servidor
     if (updatedStory.isPublished) {
       try {
         await supabase
@@ -103,7 +95,7 @@ function App() {
             updated_at: new Date().toISOString()
           });
       } catch (e) {
-        console.error("Error sincronizando con servidor:", e);
+        console.error("Error de sincronización con comunidad:", e);
       }
     }
   }, []);
@@ -115,8 +107,8 @@ function App() {
           <div className="mb-8 p-8 border border-black/5 rounded-[2.5rem] bg-black/[0.02]">
             <Icons.Pen size={40} strokeWidth={1} className="text-amber-500" />
           </div>
-          <h1 className="text-2xl font-serif italic tracking-widest mb-3">StoryCraft</h1>
-          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-ink-300">Iniciando Estudio Local</div>
+          <h1 className="text-2xl font-serif italic tracking-widest mb-3 text-ink-900">StoryCraft</h1>
+          <div className="text-[8px] font-mono uppercase tracking-[0.5em] text-ink-300">Conectando con la Comunidad</div>
         </div>
       </div>
     );
@@ -151,7 +143,7 @@ function App() {
               setView('EDITOR'); 
             }}
             onDeleteStory={(id) => {
-              if(confirm("¿Borrar definitivamente este manuscrito? Se eliminará de tu local y del servidor si estaba publicado.")) {
+              if(confirm("¿Borrar definitivamente este manuscrito? Se eliminará del local y del servidor global.")) {
                 setData(prev => ({ ...prev, stories: prev.stories.filter(s => s.id !== id) }));
                 supabase.from('public_stories').delete().eq('id', id);
               }
@@ -173,6 +165,7 @@ function App() {
             onBackHome={() => setView('HOME')}
             isDarkMode={isStudioDarkMode}
             onToggleDarkMode={() => setIsStudioDarkMode(!isStudioDarkMode)}
+            onEnterFeed={() => setView('FEED')}
           />
         )}
         {view === 'FEED' && (
@@ -193,7 +186,7 @@ function App() {
               setCommunityStory(null);
               setView(communityStory ? 'FEED' : 'LIBRARY');
             }} 
-            onShare={() => alert("Función de compartir enlace activada.")} 
+            onShare={() => alert("Compartir activado.")} 
             theme={editorTheme} 
             onChangeTheme={setEditorTheme}
             cloudImages={data.cloudImages}

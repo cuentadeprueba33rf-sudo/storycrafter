@@ -19,6 +19,7 @@ interface LibraryProps {
   onBackHome: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  onEnterFeed?: () => void; // Prop añadida para navegar al feed
 }
 
 const StatusBadge: React.FC<{ status: StoryStatus }> = ({ status }) => {
@@ -49,7 +50,8 @@ export const Library: React.FC<LibraryProps> = ({
   onShareStory,
   onBackHome,
   isDarkMode,
-  onToggleDarkMode
+  onToggleDarkMode,
+  onEnterFeed
 }) => {
   const [viewMode, setViewMode] = useState<LibraryViewMode>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,10 +79,19 @@ export const Library: React.FC<LibraryProps> = ({
           <div className="flex items-center gap-4">
             <button 
               onClick={onBackHome} 
-              className="p-2.5 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl hover:scale-110 transition-all shadow-lg group relative"
+              className="p-2.5 bg-ink-900 dark:bg-white text-white dark:text-black rounded-xl hover:scale-110 transition-all shadow-lg"
               title="Volver al Inicio"
             >
               <Icons.Home size={18} />
+            </button>
+
+            {/* Botón de Comunidad Directo */}
+            <button 
+              onClick={onEnterFeed} 
+              className="p-2.5 bg-amber-500 text-white rounded-xl hover:scale-110 transition-all shadow-lg"
+              title="Explorar Comunidad"
+            >
+              <Icons.Globe size={18} />
             </button>
 
             <button 
@@ -121,12 +132,12 @@ export const Library: React.FC<LibraryProps> = ({
                  placeholder="Buscar obra..." 
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full md:w-64 pl-9 pr-4 py-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                 className="w-full md:w-64 pl-9 pr-4 py-3 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500 transition-all"
                />
              </div>
              <button 
                 onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} 
-                className="p-2.5 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white transition-colors"
+                className="p-3 bg-ink-50 dark:bg-ink-900 border border-ink-200 dark:border-ink-800 rounded-xl text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white transition-colors"
              >
                {viewMode === 'GRID' ? <Icons.List size={20} /> : <Icons.Grid size={20} />}
              </button>
@@ -137,7 +148,7 @@ export const Library: React.FC<LibraryProps> = ({
       <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-32 custom-scrollbar">
         {filteredFolders.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Carpetas de Proyecto</h2>
+            <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Proyectos</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {filteredFolders.map(folder => (
                 <div 
@@ -161,12 +172,12 @@ export const Library: React.FC<LibraryProps> = ({
           </div>
         )}
 
-        <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Manuscritos Recientes</h2>
+        <h2 className="text-[10px] font-black text-ink-400 mb-6 uppercase tracking-[0.3em]">Manuscritos</h2>
         
         {filteredStories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-ink-200 dark:border-ink-800 rounded-[3rem]">
+          <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed border-ink-200 dark:border-ink-800 rounded-[3rem]">
             <Icons.Book size={48} className="text-ink-200 mb-4" />
-            <p className="text-ink-400 font-serif italic text-lg text-center">No hay historias en esta sección.<br/><span className="text-sm font-sans not-italic font-bold text-ink-900 dark:text-white mt-2 inline-block">Crea tu primera obra maestra hoy.</span></p>
+            <p className="text-ink-400 font-serif italic text-lg text-center">El estudio está en silencio.<br/><span className="text-sm font-sans not-italic font-bold text-ink-900 dark:text-white mt-2 inline-block">Comienza tu obra maestra.</span></p>
           </div>
         ) : (
           <div className={viewMode === 'GRID' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-3"}>
@@ -202,7 +213,7 @@ export const Library: React.FC<LibraryProps> = ({
 
                     <div className="relative z-10 flex items-end justify-between border-t border-ink-100 dark:border-ink-800/50 pt-5 mt-auto">
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-mono text-ink-400 uppercase tracking-widest mb-1">Último cambio</span>
+                        <span className="text-[9px] font-mono text-ink-400 uppercase tracking-widest mb-1">Actividad</span>
                         <span className="text-[10px] font-bold text-ink-700 dark:text-ink-400 uppercase">{formatDate(story.updatedAt)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-ink-50 dark:bg-black rounded-xl">
